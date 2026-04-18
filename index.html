@@ -1,0 +1,824 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Timetable Generator – G D Goenka School Dakshineswar</title>
+  <style>
+    /* ── Reset & Base ── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --navy:       #1c3557;
+      --navy-dark:  #162942;
+      --green:      #0f6e56;
+      --green-dark: #085041;
+      --bg:         #f0f4f8;
+      --bg2:        #e4eaf1;
+      --card:       #ffffff;
+      --border:     rgba(0,0,0,0.10);
+      --border2:    rgba(0,0,0,0.18);
+      --text:       #1a2535;
+      --muted:      #5a6a7e;
+      --hint:       #8fa0b4;
+      --danger-bg:  #fff0f0;
+      --danger-tx:  #b91c1c;
+      --danger-bd:  #fca5a5;
+      --rad:        8px;
+      --rad-lg:     12px;
+    }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    /* ── Shell ── */
+    .shell {
+      max-width: 980px;
+      margin: 0 auto;
+      border-radius: var(--rad-lg);
+      overflow: hidden;
+      border: 0.5px solid var(--border);
+      box-shadow: 0 4px 24px rgba(0,0,0,0.08);
+    }
+
+    /* ── Header ── */
+    .hdr {
+      background: var(--navy);
+      color: #fff;
+      padding: 18px 22px;
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+    .hdr-logo {
+      width: 44px; height: 44px;
+      background: rgba(255,255,255,0.15);
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 20px; flex-shrink: 0;
+    }
+    .hdr h1 { font-size: 16px; font-weight: 600; }
+    .hdr p  { font-size: 11px; opacity: .65; margin-top: 3px; }
+
+    /* ── Tabs ── */
+    .tabs {
+      display: flex;
+      background: var(--card);
+      border-bottom: 0.5px solid var(--border);
+    }
+    .tab {
+      padding: 11px 20px;
+      border: none; background: none;
+      font-size: 13px; color: var(--muted);
+      cursor: pointer;
+      border-bottom: 2px solid transparent;
+      margin-bottom: -0.5px;
+      transition: all .15s;
+    }
+    .tab.on { color: var(--navy); border-bottom-color: var(--navy); font-weight: 600; }
+
+    /* ── Body ── */
+    .body {
+      padding: 18px;
+      background: var(--bg);
+      min-height: 500px;
+    }
+
+    /* ── Cards ── */
+    .card {
+      background: var(--card);
+      border: 0.5px solid var(--border);
+      border-radius: var(--rad-lg);
+      padding: 16px 18px;
+      margin-bottom: 14px;
+    }
+    .ct { font-size: 13px; font-weight: 600; margin-bottom: 13px; color: var(--text); }
+
+    /* ── Forms ── */
+    label.lbl {
+      display: block;
+      font-size: 11px; font-weight: 600;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: .04em;
+      margin-bottom: 5px;
+    }
+    input, select {
+      width: 100%;
+      padding: 7px 10px;
+      border: 0.5px solid var(--border2);
+      border-radius: var(--rad);
+      font-size: 13px;
+      background: var(--card);
+      color: var(--text);
+      outline: none;
+      transition: border-color .15s;
+    }
+    input:focus, select:focus { border-color: var(--navy); }
+
+    .rg-hd {
+      display: grid;
+      grid-template-columns: 70px 70px 1fr 90px 34px;
+      gap: 7px;
+      margin-bottom: 5px;
+      padding: 0 2px;
+    }
+    .rg-hd span { font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+    .ar {
+      display: grid;
+      grid-template-columns: 70px 70px 1fr 90px 34px;
+      gap: 7px;
+      margin-bottom: 7px;
+      align-items: center;
+    }
+
+    /* ── Buttons ── */
+    .btn {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 7px 14px;
+      border: 0.5px solid var(--border2);
+      border-radius: var(--rad);
+      font-size: 12px; font-weight: 500;
+      cursor: pointer;
+      background: var(--card);
+      color: var(--text);
+      transition: background .15s;
+    }
+    .btn:hover { background: var(--bg2); }
+    .btn-p { background: var(--navy); color: #fff; border-color: var(--navy); }
+    .btn-p:hover { background: var(--navy-dark); }
+    .btn-g { background: var(--green); color: #fff; border-color: var(--green); }
+    .btn-g:hover { background: var(--green-dark); }
+    .btn-d { color: var(--danger-tx); border-color: var(--danger-bd); }
+    .btn-d:hover { background: var(--danger-bg); }
+    .btn-sm { padding: 4px 10px; font-size: 12px; }
+
+    /* ── Teacher chips ── */
+    .tc {
+      display: flex; align-items: flex-start; justify-content: space-between;
+      padding: 12px 15px;
+      border: 0.5px solid var(--border);
+      border-radius: var(--rad);
+      margin-bottom: 8px;
+      background: var(--card);
+    }
+    .tn { font-size: 13px; font-weight: 600; margin-bottom: 7px; }
+    .tags { display: flex; flex-wrap: wrap; gap: 5px; }
+    .tag {
+      font-size: 11px; padding: 3px 8px;
+      border-radius: var(--rad);
+      background: var(--bg2);
+      color: var(--muted);
+    }
+
+    /* ── Empty state ── */
+    .empty {
+      text-align: center; padding: 40px 16px;
+      color: var(--muted); font-size: 13px;
+    }
+
+    /* ── View toggle ── */
+    .vt {
+      display: flex; gap: 3px;
+      background: var(--bg2); padding: 3px;
+      border-radius: var(--rad); width: fit-content;
+      margin-bottom: 14px;
+    }
+    .vb {
+      padding: 5px 14px;
+      border: none; border-radius: calc(var(--rad) - 2px);
+      font-size: 12px; cursor: pointer;
+      background: none; color: var(--muted);
+    }
+    .vb.on {
+      background: var(--card); color: var(--text);
+      font-weight: 600; border: 0.5px solid var(--border);
+    }
+
+    /* ── Section/teacher selector buttons ── */
+    .sbs { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
+    .sb {
+      padding: 5px 13px;
+      border: 0.5px solid var(--border2);
+      border-radius: var(--rad);
+      font-size: 12px; cursor: pointer;
+      background: var(--card); color: var(--text);
+      transition: all .15s;
+    }
+    .sb.on { background: var(--navy); color: #fff; border-color: var(--navy); }
+
+    /* ── Timetable Grid ── */
+    .ttg {
+      display: grid;
+      grid-template-columns: 116px repeat(4, 1fr);
+      gap: 4px;
+    }
+    .tth {
+      background: var(--bg2);
+      border: 0.5px solid var(--border);
+      border-radius: var(--rad);
+      padding: 7px 9px;
+      font-size: 12px; font-weight: 600;
+      text-align: center; color: var(--muted);
+    }
+    .ttsl {
+      background: var(--bg2);
+      border: 0.5px solid var(--border);
+      border-radius: var(--rad);
+      padding: 7px 9px;
+      font-size: 10px; color: var(--muted);
+      display: flex; align-items: center;
+      line-height: 1.3;
+    }
+    .ttc {
+      border-radius: var(--rad);
+      padding: 8px 10px;
+      min-height: 64px;
+      display: flex; flex-direction: column;
+      justify-content: center;
+      font-size: 11px;
+    }
+    .ttc.emp {
+      background: var(--bg2);
+      border: 0.5px dashed var(--border);
+      color: var(--hint);
+      align-items: center; font-size: 11px;
+    }
+    .ttc.na { background: var(--bg); border: 0.5px solid var(--border); opacity: .3; }
+    .tsub { font-weight: 600; font-size: 12px; margin-bottom: 3px; }
+    .ttr  { font-size: 10px; line-height: 1.35; opacity: .85; }
+
+    /* Subject colour classes */
+    .s-en { background: #E6F1FB; border: 0.5px solid #378ADD; color: #0C447C; }
+    .s-ma { background: #EAF3DE; border: 0.5px solid #639922; color: #27500A; }
+    .s-sc { background: #EEEDFE; border: 0.5px solid #7F77DD; color: #3C3489; }
+    .s-ss { background: #FAEEDA; border: 0.5px solid #EF9F27; color: #633806; }
+    .s-hi { background: #FCEBEB; border: 0.5px solid #E24B4A; color: #791F1F; }
+    .s-co { background: #E1F5EE; border: 0.5px solid #1D9E75; color: #085041; }
+    .s-ai { background: #FBEAF0; border: 0.5px solid #D4537E; color: #72243E; }
+    .s-df { background: var(--bg2); border: 0.5px solid var(--border2); color: var(--muted); }
+
+    /* ── Info bar ── */
+    .info-bar {
+      font-size: 12px; color: var(--muted);
+      margin-bottom: 12px;
+    }
+
+    /* ── Legend ── */
+    .legend { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
+    .leg { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--muted); }
+    .leg-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+
+    /* ── Footer ── */
+    .footer {
+      background: var(--navy);
+      color: rgba(255,255,255,0.5);
+      text-align: center;
+      font-size: 11px;
+      padding: 12px;
+    }
+
+    /* ── Responsive ── */
+    @media (max-width: 600px) {
+      body { padding: 10px; }
+      .ttg { grid-template-columns: 90px repeat(4, 1fr); }
+      .tth, .ttsl { font-size: 10px; padding: 5px 6px; }
+      .tsub { font-size: 11px; }
+      .ar, .rg-hd {
+        grid-template-columns: 60px 60px 1fr 70px 30px;
+        gap: 5px;
+      }
+    }
+  </style>
+</head>
+<body>
+
+<div class="shell">
+
+  <!-- Header -->
+  <div class="hdr">
+    <div class="hdr-logo">🏫</div>
+    <div>
+      <h1>G D Goenka School Dakshineswar &mdash; Timetable Generator</h1>
+      <p>Online sessions &middot; 21 Apr (Tue) &ndash; 24 Apr (Fri) 2026</p>
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tabs">
+    <button class="tab on" id="tb0" onclick="goTab(0)">&#9998; Enter Teacher Data</button>
+    <button class="tab"    id="tb1" onclick="goTab(1)">&#9776; Generate Timetable</button>
+  </div>
+
+  <!-- Body -->
+  <div class="body">
+
+    <!-- ══ TAB 0 : DATA ENTRY ══ -->
+    <div id="tp0">
+
+      <div class="card">
+        <div class="ct">Add a Teacher</div>
+
+        <div style="margin-bottom:14px;">
+          <label class="lbl">Teacher name (all caps)</label>
+          <input type="text" id="tname" placeholder="e.g. ANANYA ROY"
+                 style="max-width:320px;"
+                 oninput="this.value=this.value.toUpperCase()">
+        </div>
+
+        <div class="rg-hd">
+          <span>Class</span>
+          <span>Section</span>
+          <span>Subject</span>
+          <span>Sessions/wk</span>
+          <span></span>
+        </div>
+        <div id="arows"></div>
+
+        <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">
+          <button class="btn" onclick="addRow()">+ Add row</button>
+          <button class="btn btn-p" onclick="addTeacher()">Save teacher</button>
+        </div>
+      </div>
+
+      <!-- Legend of what counts are fixed -->
+      <div class="card" style="padding:12px 16px;">
+        <div class="ct" style="margin-bottom:8px;">Fixed session requirements (21–24 Apr)</div>
+        <div style="font-size:12px; color:var(--muted); line-height:1.8;">
+          <b style="color:var(--text);">Class VI–VIII per section:</b>
+          English 3 &middot; Maths 3 &middot; Science 3 &middot; Social Science 3 &middot;
+          Hindi/Bengali 3 (simultaneous) &middot; Computer 1
+          <br>
+          <b style="color:var(--text);">Class IX–X per section:</b>
+          English 3 &middot; Maths 3 &middot; Science 3 &middot; Social Science 4 &middot;
+          Hindi/Bengali 3 (simultaneous) &middot; AI 1
+          <br>
+          <b style="color:var(--text);">Class III–V / XI–XII:</b>
+          Uses the sessions/week value entered by the teacher (capped to available slots).
+        </div>
+      </div>
+
+      <div id="tlist">
+        <div class="empty">No teachers added yet. Fill in the form above and click "Save teacher".</div>
+      </div>
+    </div>
+
+    <!-- ══ TAB 1 : TIMETABLE ══ -->
+    <div id="tp1" style="display:none;">
+
+      <div style="display:flex;gap:10px;align-items:center;margin-bottom:16px;flex-wrap:wrap;">
+        <button class="btn btn-g" onclick="runSched()">&#9881; Generate Timetable</button>
+        <button class="btn" onclick="printTT()" id="btn-print" style="display:none;">&#128438; Print / Export PDF</button>
+        <span id="gstat" style="font-size:12px;color:var(--muted);"></span>
+      </div>
+
+      <div id="ttout">
+        <div class="empty">
+          Add teacher data in the first tab, then click "Generate Timetable".
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /body -->
+
+  <div class="footer">
+    G D Goenka School Dakshineswar &mdash; Timetable Generator &copy; 2026
+  </div>
+
+</div><!-- /shell -->
+
+<script>
+// ═══════════════════════════════════════════
+//  STATE
+// ═══════════════════════════════════════════
+var teachers = [];
+var ttData   = null;
+var curView  = 'sec';
+
+// ═══════════════════════════════════════════
+//  CONSTANTS
+// ═══════════════════════════════════════════
+var DAYS  = ['Tue 21 Apr', 'Wed 22 Apr', 'Thu 23 Apr', 'Fri 24 Apr'];
+var SLOTS = ['9:00–9:45 AM', '10:00–10:45 AM', '11:00–11:45 AM', '12:00–12:45 PM'];
+
+// ═══════════════════════════════════════════
+//  TAB SWITCHING
+// ═══════════════════════════════════════════
+function goTab(i) {
+  document.getElementById('tp0').style.display = (i === 0) ? '' : 'none';
+  document.getElementById('tp1').style.display = (i === 1) ? '' : 'none';
+  document.getElementById('tb0').className = 'tab' + (i === 0 ? ' on' : '');
+  document.getElementById('tb1').className = 'tab' + (i === 1 ? ' on' : '');
+}
+
+// ═══════════════════════════════════════════
+//  FORM HELPERS
+// ═══════════════════════════════════════════
+function addRow() {
+  if (document.querySelectorAll('.ar').length >= 18) {
+    alert('Maximum 18 assignments per teacher.'); return;
+  }
+  var d = document.createElement('div');
+  d.className = 'ar';
+  d.innerHTML =
+    '<input type="text"   class="ci" placeholder="e.g. 8" maxlength="3">' +
+    '<input type="text"   class="si" placeholder="e.g. A" maxlength="3" oninput="this.value=this.value.toUpperCase()">' +
+    '<input type="text"   class="bi" placeholder="e.g. English">' +
+    '<input type="number" class="ni" placeholder="e.g. 4" min="1" max="20">' +
+    '<button class="btn btn-d btn-sm" onclick="this.closest(\'.ar\').remove()" ' +
+    'style="padding:4px 8px;font-size:15px;border-radius:var(--rad);">&#215;</button>';
+  document.getElementById('arows').appendChild(d);
+}
+
+function addTeacher() {
+  var name = document.getElementById('tname').value.trim().toUpperCase();
+  if (!name) { alert('Please enter the teacher\'s name.'); return; }
+
+  var rows = document.querySelectorAll('.ar'), ass = [];
+  rows.forEach(function(r) {
+    var c = r.querySelector('.ci').value.trim();
+    var s = r.querySelector('.si').value.trim().toUpperCase();
+    var b = r.querySelector('.bi').value.trim();
+    var n = parseInt(r.querySelector('.ni').value);
+    if (c && s && b && n) ass.push({ classNum: parseInt(c), section: s, subject: b, count: n });
+  });
+
+  if (!ass.length) { alert('Please complete at least one assignment row.'); return; }
+
+  var ei = teachers.findIndex(function(t) { return t.name === name; });
+  if (ei >= 0) {
+    if (confirm(name + ' already exists. Merge new assignments?')) {
+      teachers[ei].assignments = teachers[ei].assignments.concat(ass);
+    } else return;
+  } else {
+    teachers.push({ name: name, assignments: ass });
+  }
+
+  document.getElementById('tname').value = '';
+  document.getElementById('arows').innerHTML = '';
+  addRow();
+  renderList();
+}
+
+function delTeacher(i) {
+  if (!confirm('Remove ' + teachers[i].name + '?')) return;
+  teachers.splice(i, 1);
+  renderList();
+}
+
+function renderList() {
+  var el = document.getElementById('tlist');
+  if (!teachers.length) {
+    el.innerHTML = '<div class="empty">No teachers added yet. Fill in the form above and click "Save teacher".</div>';
+    return;
+  }
+  el.innerHTML = teachers.map(function(t, i) {
+    return '<div class="tc">' +
+      '<div style="flex:1">' +
+        '<div class="tn">' + esc(t.name) + '</div>' +
+        '<div class="tags">' +
+          t.assignments.map(function(a) {
+            return '<span class="tag">Class ' + a.classNum + a.section +
+                   ' &middot; ' + esc(a.subject) + ' (' + a.count + '/wk)</span>';
+          }).join('') +
+        '</div>' +
+      '</div>' +
+      '<button class="btn btn-d btn-sm" onclick="delTeacher(' + i + ')" ' +
+      'style="margin-left:12px;flex-shrink:0;">Remove</button>' +
+      '</div>';
+  }).join('');
+}
+
+// ═══════════════════════════════════════════
+//  ALGORITHM
+// ═══════════════════════════════════════════
+function normSub(s) {
+  var l = s.trim().toLowerCase();
+  if (['maths','mathematics','math'].indexOf(l) >= 0)                       return 'Maths';
+  if (l === 'english')                                                       return 'English';
+  if (l === 'science')                                                       return 'Science';
+  if (['social science','social studies','sst','ss','history','geography',
+       'civics','economics'].indexOf(l) >= 0)                               return 'Social Science';
+  if (l === 'hindi')                                                         return 'Hindi';
+  if (l === 'bengali')                                                       return 'Bengali';
+  if (['computer','computer science','cs','it','information technology',
+       'informatics practices','ip'].indexOf(l) >= 0)                       return 'Computer';
+  if (['ai','artificial intelligence','a.i.'].indexOf(l) >= 0)              return 'AI';
+  return s.trim();
+}
+
+function reqSess(cls, sub) {
+  var n = parseInt(cls), s = normSub(sub);
+  if (n >= 6 && n <= 8) {
+    var m = { 'English':3,'Maths':3,'Science':3,'Social Science':3,
+              'Hindi':3,'Bengali':3,'Computer':1 };
+    return (m[s] != null) ? m[s] : null;
+  }
+  if (n >= 9 && n <= 10) {
+    var m2 = { 'English':3,'Maths':3,'Science':3,'Social Science':4,
+               'Hindi':3,'Bengali':3,'AI':1 };
+    return (m2[s] != null) ? m2[s] : null;
+  }
+  return null;
+}
+
+function maxSlot(cls) { return parseInt(cls) <= 5 ? 2 : 3; }
+
+function runSched() {
+  if (!teachers.length) { alert('Please add at least one teacher first.'); return; }
+  document.getElementById('gstat').textContent = 'Generating…';
+
+  // Build flat assignment list
+  var allA = [];
+  teachers.forEach(function(t) {
+    t.assignments.forEach(function(a) {
+      var sub = normSub(a.subject);
+      var req = reqSess(a.classNum, sub);
+      var cnt = (req != null) ? req : Math.min(a.count, (maxSlot(a.classNum) + 1) * 4);
+      allA.push({ tn: t.name, cls: parseInt(a.classNum), sec: a.section,
+                  sub: sub, cnt: cnt, cs: a.classNum + '-' + a.section });
+    });
+  });
+
+  // Initialise timetable and busy maps
+  var tt    = [];
+  var tBusy = [];  // teacher busy
+  var sBusy = [];  // section busy
+  for (var d = 0; d < 4; d++) {
+    tt[d] = []; tBusy[d] = []; sBusy[d] = [];
+    for (var s = 0; s < 4; s++) { tt[d][s] = {}; tBusy[d][s] = {}; sBusy[d][s] = {}; }
+  }
+
+  function canPlace(d, s, cs, cls) {
+    if (s > maxSlot(cls)) return false;
+    if (tt[d][s][cs])     return false;
+    if (sBusy[d][s][cs])  return false;
+    for (var i = 4; i < arguments.length; i++) {
+      if (tBusy[d][s][arguments[i]]) return false;
+    }
+    return true;
+  }
+
+  function doPlace(d, s, cs, sub, tList) {
+    tt[d][s][cs] = { sub: sub, tl: tList };
+    sBusy[d][s][cs] = 1;
+    tList.forEach(function(tn) { tBusy[d][s][tn] = 1; });
+  }
+
+  // Separate Hindi / Bengali / other
+  var hindiList = allA.filter(function(a) { return a.sub === 'Hindi'; });
+  var bengMap   = {};
+  allA.filter(function(a) { return a.sub === 'Bengali'; })
+      .forEach(function(a) { bengMap[a.cs] = a; });
+  var others = allA.filter(function(a) { return a.sub !== 'Hindi' && a.sub !== 'Bengali'; });
+
+  // 1. Schedule Hindi/Bengali pairs (same slot, both teachers must be free)
+  var paired = {};
+  hindiList.forEach(function(ha) {
+    var ba = bengMap[ha.cs], placed = 0;
+    for (var d = 0; d < 4 && placed < ha.cnt; d++) {
+      for (var s = 0; s <= maxSlot(ha.cls) && placed < ha.cnt; s++) {
+        var bOk = ba ? !tBusy[d][s][ba.tn] : true;
+        if (canPlace(d, s, ha.cs, ha.cls, ha.tn) && bOk) {
+          var subLabel = ba ? 'Hindi / Bengali' : 'Hindi';
+          var tList    = [ha.tn]; if (ba) tList.push(ba.tn);
+          doPlace(d, s, ha.cs, subLabel, tList);
+          placed++;
+        }
+      }
+    }
+    paired[ha.cs] = 1;
+  });
+
+  // 2. Bengali without a Hindi partner
+  Object.keys(bengMap).forEach(function(cs) {
+    if (paired[cs]) return;
+    var ba = bengMap[cs], placed = 0;
+    for (var d = 0; d < 4 && placed < ba.cnt; d++) {
+      for (var s = 0; s <= maxSlot(ba.cls) && placed < ba.cnt; s++) {
+        if (canPlace(d, s, cs, ba.cls, ba.tn)) { doPlace(d, s, cs, 'Bengali', [ba.tn]); placed++; }
+      }
+    }
+  });
+
+  // 3. All other subjects (highest session-count first = hardest to place)
+  others.sort(function(a, b) { return b.cnt - a.cnt; });
+  others.forEach(function(task) {
+    var placed = 0;
+    for (var d = 0; d < 4 && placed < task.cnt; d++) {
+      for (var s = 0; s <= maxSlot(task.cls) && placed < task.cnt; s++) {
+        if (canPlace(d, s, task.cs, task.cls, task.tn)) {
+          doPlace(d, s, task.cs, task.sub, [task.tn]); placed++;
+        }
+      }
+    }
+  });
+
+  ttData = tt;
+
+  // Collect all class-sections, sorted
+  var csSet = {};
+  teachers.forEach(function(t) {
+    t.assignments.forEach(function(a) { csSet[a.classNum + '-' + a.section] = 1; });
+  });
+  var csList = Object.keys(csSet).sort(function(a, b) {
+    var ap = a.split('-'), bp = b.split('-');
+    return parseInt(ap[0]) - parseInt(bp[0]) || ap[1].localeCompare(bp[1]);
+  });
+  var trList = teachers.map(function(t) { return t.name; }).sort();
+
+  renderTT(csList, trList);
+  document.getElementById('btn-print').style.display = '';
+  document.getElementById('gstat').textContent =
+    '✓ Timetable generated for ' + csList.length + ' section(s) across ' + trList.length + ' teacher(s).';
+}
+
+// ═══════════════════════════════════════════
+//  TIMETABLE RENDERING
+// ═══════════════════════════════════════════
+function subjCls(sub) {
+  if (!sub) return 's-df';
+  var l = sub.toLowerCase();
+  if (l.indexOf('english') >= 0)                          return 's-en';
+  if (l.indexOf('math') >= 0)                             return 's-ma';
+  if (l.indexOf('science') >= 0 && l.indexOf('social') < 0) return 's-sc';
+  if (l.indexOf('social') >= 0)                           return 's-ss';
+  if (l.indexOf('hindi') >= 0 || l.indexOf('bengali') >= 0) return 's-hi';
+  if (l.indexOf('computer') >= 0)                         return 's-co';
+  if (l.indexOf('ai') >= 0 || l.indexOf('artif') >= 0)   return 's-ai';
+  return 's-df';
+}
+
+function fmtCS(cs) {
+  var p = cs.split('-');
+  return 'Class ' + p[0] + '\u2013' + p[1];
+}
+
+function esc(s) {
+  return String(s)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+var LEGEND_ITEMS = [
+  { cls:'s-en', label:'English' },
+  { cls:'s-ma', label:'Maths' },
+  { cls:'s-sc', label:'Science' },
+  { cls:'s-ss', label:'Social Science' },
+  { cls:'s-hi', label:'Hindi / Bengali' },
+  { cls:'s-co', label:'Computer' },
+  { cls:'s-ai', label:'AI' },
+  { cls:'s-df', label:'Other' },
+];
+
+var LEGEND_COLORS = {
+  's-en':'#378ADD','s-ma':'#639922','s-sc':'#7F77DD',
+  's-ss':'#EF9F27','s-hi':'#E24B4A','s-co':'#1D9E75',
+  's-ai':'#D4537E','s-df':'#8fa0b4'
+};
+
+function renderTT(csList, trList) {
+  var legendHTML = LEGEND_ITEMS.map(function(item) {
+    return '<span class="leg"><span class="leg-dot" style="background:' +
+      LEGEND_COLORS[item.cls] + '"></span>' + item.label + '</span>';
+  }).join('');
+
+  var el = document.getElementById('ttout');
+  el.innerHTML =
+    '<div class="vt">' +
+      '<button class="vb on" id="vb-s" onclick="setV(\'sec\')">By Section</button>' +
+      '<button class="vb"    id="vb-t" onclick="setV(\'tr\')">By Teacher</button>' +
+    '</div>' +
+    '<div class="legend">' + legendHTML + '</div>' +
+
+    '<div id="vw-sec">' +
+      '<div class="sbs" id="cs-sel">' +
+        csList.map(function(cs) {
+          return '<button class="sb" data-cs="' + cs + '" onclick="pickCS(\'' + cs + '\')">' +
+                 fmtCS(cs) + '</button>';
+        }).join('') +
+      '</div>' +
+      '<div id="sg-cont"><div class="empty" style="padding:20px 0;">Select a class-section above.</div></div>' +
+    '</div>' +
+
+    '<div id="vw-tr" style="display:none;">' +
+      '<div class="sbs" id="tr-sel">' +
+        trList.map(function(t) {
+          return '<button class="sb" data-tr="' + esc(t) + '" onclick="pickTR(\'' + esc(t) + '\')">' +
+                 esc(t) + '</button>';
+        }).join('') +
+      '</div>' +
+      '<div id="tg-cont"><div class="empty" style="padding:20px 0;">Select a teacher above.</div></div>' +
+    '</div>';
+}
+
+function setV(v) {
+  curView = v;
+  document.getElementById('vw-sec').style.display = (v === 'sec') ? '' : 'none';
+  document.getElementById('vw-tr').style.display  = (v === 'tr')  ? '' : 'none';
+  document.getElementById('vb-s').className = 'vb' + (v === 'sec' ? ' on' : '');
+  document.getElementById('vb-t').className = 'vb' + (v === 'tr'  ? ' on' : '');
+}
+
+function buildGrid(getCellHTML, msOverride) {
+  var h = '<div class="ttg">' +
+    '<div class="tth" style="text-align:left;font-size:11px;">Slot</div>' +
+    DAYS.map(function(d) { return '<div class="tth">' + d + '</div>'; }).join('');
+
+  for (var s = 0; s < 4; s++) {
+    h += '<div class="ttsl">' + SLOTS[s] + '</div>';
+    for (var d = 0; d < 4; d++) {
+      var ms = (msOverride != null) ? msOverride : 3;
+      h += (s > ms)
+        ? '<div class="ttc na"></div>'
+        : getCellHTML(d, s);
+    }
+  }
+  return h + '</div>';
+}
+
+function pickCS(cs) {
+  document.querySelectorAll('#cs-sel .sb').forEach(function(b) {
+    b.className = 'sb' + (b.dataset.cs === cs ? ' on' : '');
+  });
+
+  var cls = parseInt(cs.split('-')[0]);
+  var ms  = maxSlot(cls);
+
+  var counts = {};
+  for (var d = 0; d < 4; d++) for (var s = 0; s <= ms; s++) {
+    var c = ttData[d][s][cs];
+    if (c) counts[c.sub] = (counts[c.sub] || 0) + 1;
+  }
+  var summaryParts = Object.keys(counts).map(function(k) {
+    return '<b>' + esc(k) + '</b> ' + counts[k];
+  });
+  var summary = '<div class="info-bar"><span style="color:var(--text)">' + fmtCS(cs) +
+    '</span> &nbsp;|&nbsp; Sessions placed: ' +
+    (summaryParts.length ? summaryParts.join(', ') : 'none') + '</div>';
+
+  var grid = buildGrid(function(d, s) {
+    var c = ttData[d][s][cs];
+    if (!c) return '<div class="ttc emp">—</div>';
+    return '<div class="ttc ' + subjCls(c.sub) + '">' +
+      '<div class="tsub">' + esc(c.sub) + '</div>' +
+      '<div class="ttr">'  + c.tl.map(esc).join('<br>') + '</div>' +
+      '</div>';
+  }, ms);
+
+  document.getElementById('sg-cont').innerHTML = summary + grid;
+}
+
+function pickTR(name) {
+  document.querySelectorAll('#tr-sel .sb').forEach(function(b) {
+    b.className = 'sb' + (b.dataset.tr === name ? ' on' : '');
+  });
+
+  var cnt = 0;
+  for (var d = 0; d < 4; d++) for (var s = 0; s < 4; s++) {
+    Object.keys(ttData[d][s]).forEach(function(cs) {
+      var c = ttData[d][s][cs];
+      if (c && c.tl.indexOf(name) >= 0) cnt++;
+    });
+  }
+
+  var grid = buildGrid(function(d, s) {
+    var found = [];
+    Object.keys(ttData[d][s]).forEach(function(cs) {
+      var c = ttData[d][s][cs];
+      if (c && c.tl.indexOf(name) >= 0) found.push({ cs: cs, sub: c.sub });
+    });
+    if (!found.length) return '<div class="ttc emp" style="font-size:10px;">Free</div>';
+    var f = found[0];
+    var clash = found.length > 1
+      ? '<div class="ttr" style="color:#b91c1c;">&#9888; clash +' + (found.length - 1) + '</div>'
+      : '';
+    return '<div class="ttc ' + subjCls(f.sub) + '">' +
+      '<div class="tsub">' + esc(f.sub) + '</div>' +
+      '<div class="ttr">'  + esc(fmtCS(f.cs)) + '</div>' +
+      clash + '</div>';
+  }, null);
+
+  var info = '<div class="info-bar"><span style="color:var(--text)">' + esc(name) +
+    '</span> &nbsp;|&nbsp; ' + cnt + ' session(s) over 4 days</div>';
+  document.getElementById('tg-cont').innerHTML = info + grid;
+}
+
+// ═══════════════════════════════════════════
+//  PRINT / EXPORT
+// ═══════════════════════════════════════════
+function printTT() { window.print(); }
+
+// ═══════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════
+addRow();
+</script>
+
+</body>
+</html>
