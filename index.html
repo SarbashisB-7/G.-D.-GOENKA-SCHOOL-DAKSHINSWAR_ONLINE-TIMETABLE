@@ -343,6 +343,7 @@
         <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">
           <button class="btn" onclick="addRow()">+ Add row</button>
           <button class="btn btn-p" onclick="addTeacher()">Save teacher</button>
+          <button class="btn btn-d btn-sm" onclick="clearAll()" style="margin-left:auto;">🗑 Clear all saved data</button>
         </div>
       </div>
 
@@ -374,6 +375,8 @@
       <div style="display:flex;gap:10px;align-items:center;margin-bottom:16px;flex-wrap:wrap;">
         <button class="btn btn-g" onclick="runSched()">&#9881; Generate Timetable</button>
         <button class="btn" onclick="printTT()" id="btn-print" style="display:none;">&#128438; Print / Export PDF</button>
+        <button class="btn btn-p" onclick="dlTeacherWise()" id="btn-dl-t" style="display:none;">&#11015; Download Teacher Timetables</button>
+        <button class="btn btn-p" onclick="dlSectionWise()" id="btn-dl-s" style="display:none;">&#11015; Download Section Timetables</button>
         <span id="gstat" style="font-size:12px;color:var(--muted);"></span>
       </div>
 
@@ -399,6 +402,26 @@
 var teachers = [];
 var ttData   = null;
 var curView  = 'sec';
+var allTrList = [];   // full sorted teacher list for searchable selector
+
+// ── Persistence helpers ──
+var STORE_KEY = 'gdg_tt_teachers_v1';
+function saveTeachers() {
+  try { localStorage.setItem(STORE_KEY, JSON.stringify(teachers)); } catch(e) {}
+}
+function loadTeachers() {
+  try {
+    var raw = localStorage.getItem(STORE_KEY);
+    if (raw) { teachers = JSON.parse(raw); renderList(); }
+  } catch(e) {}
+}
+function clearAll() {
+  if (!confirm('Delete ALL saved teacher data? This cannot be undone.')) return;
+  teachers = [];
+  try { localStorage.removeItem(STORE_KEY); } catch(e) {}
+  renderList();
+}
+
 
 // ═══════════════════════════════════════════
 //  CONSTANTS
@@ -463,12 +486,14 @@ function addTeacher() {
   document.getElementById('arows').innerHTML = '';
   addRow();
   renderList();
+  saveTeachers();
 }
 
 function delTeacher(i) {
   if (!confirm('Remove ' + teachers[i].name + '?')) return;
   teachers.splice(i, 1);
   renderList();
+  saveTeachers();
 }
 
 function renderList() {
@@ -631,9 +656,12 @@ function runSched() {
     return parseInt(ap[0]) - parseInt(bp[0]) || ap[1].localeCompare(bp[1]);
   });
   var trList = teachers.map(function(t) { return t.name; }).sort();
+  allTrList = trList;
 
   renderTT(csList, trList);
   document.getElementById('btn-print').style.display = '';
+  document.getElementById('btn-dl-t').style.display = '';
+  document.getElementById('btn-dl-s').style.display = '';
   document.getElementById('gstat').textContent =
     '✓ Timetable generated for ' + csList.length + ' section(s) across ' + trList.length + ' teacher(s).';
 }
@@ -707,15 +735,35 @@ function renderTT(csList, trList) {
     '</div>' +
 
     '<div id="vw-tr" style="display:none;">' +
-      '<div class="sbs" id="tr-sel">' +
-        trList.map(function(t) {
-          return '<button class="sb" data-tr="' + esc(t) + '" onclick="pickTR(\'' + esc(t) + '\')">' +
-                 esc(t) + '</button>';
-        }).join('') +
+      '<div style="margin-bottom:12px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;">' +
+        '<input id="tr-search" type="text" placeholder="Search teacher…" style="max-width:260px;" oninput="filterTR(this.value)">' +
+        '<span id="tr-count" style="font-size:11px;color:var(--muted);"></span>' +
       '</div>' +
+      '<div class="sbs" id="tr-sel"></div>' +
+      '<div id="tr-sel-overflow" style="display:none;"></div>' +
       '<div id="tg-cont"><div class="empty" style="padding:20px 0;">Select a teacher above.</div></div>' +
     '</div>';
 }
+
+function populateTrSel(filter) {
+  var sel = document.getElementById('tr-sel');
+  if (!sel) return;
+  var q = filter.trim().toUpperCase();
+  var filtered = allTrList.filter(function(t) { return !q || t.indexOf(q) >= 0; });
+  document.getElementById('tr-count').textContent =
+    filtered.length + ' of ' + allTrList.length + ' teacher(s)';
+  var show = filtered.slice(0, 60);
+  sel.innerHTML = show.map(function(t) {
+    return '<button class="sb" data-tr="' + esc(t) + '" onclick="pickTR(\'' + esc(t) + '\')">' +
+           esc(t) + '</button>';
+  }).join('');
+  if (filtered.length > 60) {
+    sel.innerHTML += '<span style="font-size:11px;color:var(--muted);align-self:center;">' +
+      '… ' + (filtered.length - 60) + ' more — refine search</span>';
+  }
+}
+
+function filterTR(val) { populateTrSel(val); }
 
 function setV(v) {
   curView = v;
@@ -723,6 +771,7 @@ function setV(v) {
   document.getElementById('vw-tr').style.display  = (v === 'tr')  ? '' : 'none';
   document.getElementById('vb-s').className = 'vb' + (v === 'sec' ? ' on' : '');
   document.getElementById('vb-t').className = 'vb' + (v === 'tr'  ? ' on' : '');
+  if (v === 'tr') populateTrSel(document.getElementById('tr-search') ? document.getElementById('tr-search').value : '');
 }
 
 function buildGrid(getCellHTML, msOverride) {
@@ -810,6 +859,97 @@ function pickTR(name) {
 }
 
 // ═══════════════════════════════════════════
+//  DOWNLOAD HELPERS
+// ═══════════════════════════════════════════
+
+function buildPrintableGrid(getCellHTML, ms) {
+  var html = '<table style="border-collapse:collapse;width:100%;font-size:11px;">';
+  html += '<tr><th style="border:1px solid #ccc;padding:5px;background:#e4eaf1;">Slot</th>';
+  DAYS.forEach(function(d) {
+    html += '<th style="border:1px solid #ccc;padding:5px;background:#e4eaf1;">' + esc(d) + '</th>';
+  });
+  html += '</tr>';
+  for (var s = 0; s < 4; s++) {
+    html += '<tr><td style="border:1px solid #ccc;padding:5px;font-size:10px;color:#5a6a7e;">' + esc(SLOTS[s]) + '</td>';
+    for (var d = 0; d < 4; d++) {
+      html += (s > ms)
+        ? '<td style="border:1px solid #ccc;padding:5px;background:#f5f5f5;opacity:0.4;"></td>'
+        : getCellHTML(d, s);
+    }
+    html += '</tr>';
+  }
+  html += '</table>';
+  return html;
+}
+
+function wrapPage(title, body) {
+  return '<div style="page-break-after:always;padding:14px;">' +
+    '<h3 style="font-family:Segoe UI,sans-serif;color:#1c3557;margin:0 0 8px;">' + esc(title) + '</h3>' +
+    body +
+    '</div>';
+}
+
+function triggerDownload(html, filename) {
+  var full = '<!DOCTYPE html><html><head><meta charset="UTF-8">' +
+    '<title>' + filename + '</title>' +
+    '<style>body{font-family:Segoe UI,sans-serif;margin:0;padding:0;} @media print{div{page-break-after:always;}}</style>' +
+    '</head><body>' + html + '</body></html>';
+  var blob = new Blob([full], { type: 'text/html' });
+  var url  = URL.createObjectURL(blob);
+  var a    = document.createElement('a');
+  a.href = url; a.download = filename; a.click();
+  setTimeout(function() { URL.revokeObjectURL(url); }, 2000);
+}
+
+function dlTeacherWise() {
+  if (!ttData) { alert('Generate the timetable first.'); return; }
+  var pages = '';
+  allTrList.forEach(function(name) {
+    var cnt = 0;
+    var grid = buildPrintableGrid(function(d, s) {
+      var found = [];
+      Object.keys(ttData[d][s]).forEach(function(cs) {
+        var c = ttData[d][s][cs];
+        if (c && c.tl.indexOf(name) >= 0) found.push({ cs: cs, sub: c.sub });
+      });
+      if (!found.length) return '<td style="border:1px solid #ccc;padding:5px;color:#aaa;">Free</td>';
+      cnt++;
+      var f = found[0];
+      var clash = found.length > 1 ? ' ⚠ clash' : '';
+      return '<td style="border:1px solid #ccc;padding:5px;">' +
+        '<b>' + esc(f.sub) + '</b><br>' + esc(fmtCS(f.cs)) + clash + '</td>';
+    }, 3);
+    pages += wrapPage(name + ' — ' + cnt + ' session(s)', grid);
+  });
+  triggerDownload(pages, 'Teacher_Timetables_GDG.html');
+}
+
+function dlSectionWise() {
+  if (!ttData) { alert('Generate the timetable first.'); return; }
+  var csSet = {};
+  teachers.forEach(function(t) {
+    t.assignments.forEach(function(a) { csSet[a.classNum + '-' + a.section] = 1; });
+  });
+  var csList = Object.keys(csSet).sort(function(a, b) {
+    var ap = a.split('-'), bp = b.split('-');
+    return parseInt(ap[0]) - parseInt(bp[0]) || ap[1].localeCompare(bp[1]);
+  });
+  var pages = '';
+  csList.forEach(function(cs) {
+    var cls = parseInt(cs.split('-')[0]);
+    var ms  = maxSlot(cls);
+    var grid = buildPrintableGrid(function(d, s) {
+      var c = ttData[d][s][cs];
+      if (!c) return '<td style="border:1px solid #ccc;padding:5px;color:#aaa;">—</td>';
+      return '<td style="border:1px solid #ccc;padding:5px;">' +
+        '<b>' + esc(c.sub) + '</b><br>' + c.tl.map(esc).join(', ') + '</td>';
+    }, ms);
+    pages += wrapPage(fmtCS(cs), grid);
+  });
+  triggerDownload(pages, 'Section_Timetables_GDG.html');
+}
+
+// ═══════════════════════════════════════════
 //  PRINT / EXPORT
 // ═══════════════════════════════════════════
 function printTT() { window.print(); }
@@ -817,6 +957,7 @@ function printTT() { window.print(); }
 // ═══════════════════════════════════════════
 //  INIT
 // ═══════════════════════════════════════════
+loadTeachers();
 addRow();
 </script>
 
