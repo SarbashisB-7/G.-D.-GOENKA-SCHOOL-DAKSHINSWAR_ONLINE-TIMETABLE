@@ -822,163 +822,146 @@ function runSched() {
   // ── Schedule everything else ──
   var others=nonLangA.filter(function(a){ return !isLangSub(a.sub); });
 
-  // Helper: remove a placed session from all tracking structures
+  // ── Helper: atomically undo a placed session ──────────────
+  // Correctly removes ALL tracking for one (d,s,cs) placement.
   function undoPlace(d,s,cs,sub,tList){
     delete tt[d][s][cs];
     delete sBusy[d][s][cs];
+    // Only clear daySubBusy if no other slot on this day has the same sub for this section
     var stillToday=false;
     for(var ss=0;ss<4;ss++){
       if(ss===s) continue;
-      if(tt[d][ss][cs]&&tt[d][ss][cs].sub===sub){ stillToday=true; break; }
+      var cell=tt[d][ss][cs];
+      if(cell&&(cell.sub===sub||cell.sub.toLowerCase()===sub.toLowerCase())){ stillToday=true; break; }
     }
-    if(!stillToday&&daySubBusy[d][cs]) delete daySubBusy[d][cs][sub];
+    if(!stillToday&&daySubBusy[d]&&daySubBusy[d][cs]) delete daySubBusy[d][cs][sub];
+    // Clear teacher busy only if teacher has no OTHER entry in this exact slot
     tList.forEach(function(tn){
       var stillBusy=false;
-      Object.keys(tt[d][s]).forEach(function(otherCs){
-        if(tt[d][s][otherCs]&&tt[d][s][otherCs].tl.indexOf(tn)>=0) stillBusy=true;
-      });
+      var slotEntries=tt[d][s];
+      for(var otherCs in slotEntries){
+        var cell=slotEntries[otherCs];
+        if(cell&&cell.tl.indexOf(tn)>=0){ stillBusy=true; break; }
+      }
       if(!stillBusy) delete tBusy[d][s][tn];
     });
   }
 
-  // ── PRE-PASS: schedule multi-section teachers first as a group ──
-  // Group tasks by teacher. Teachers with many sections are most constrained —
-  // schedule ALL their sections together so slots are reserved before others fill them.
-  var teacherTasks={};
+  // ── MAIN SCHEDULING PASS ──────────────────────────────────
+  // Sort tasks: most-sessions-needed first (hardest to place), using queue order as tiebreak.
+  // This ensures that a teacher teaching 3 sessions gets slots before someone teaching 1.
+  others.sort(function(a,b){
+    var diff=b.cnt-a.cnt;
+    if(diff!==0) return diff;
+    // tiebreak: preserve queue order (index in allA)
+    return allA.indexOf(a)-allA.indexOf(b);
+  });
+
+  // Pass 1: Spread — try to place one session per day first (avoids clustering)
   others.forEach(function(task){
-    if(!teacherTasks[task.tn]) teacherTasks[task.tn]=[];
-    teacherTasks[task.tn].push(task);
-  });
-
-  // Sort teachers by total sessions desc (most constrained first)
-  var teacherList=Object.keys(teacherTasks).sort(function(a,b){
-    var ta=teacherTasks[a].reduce(function(s,t){ return s+t.cnt; },0);
-    var tb=teacherTasks[b].reduce(function(s,t){ return s+t.cnt; },0);
-    return tb-ta;
-  });
-
-  // For each teacher, schedule ALL their sections in one coordinated pass
-  teacherList.forEach(function(tn){
-    var tasks=teacherTasks[tn];
-    // Sort tasks: most sessions first within this teacher
-    tasks.sort(function(a,b){ return b.cnt-a.cnt; });
-    tasks.forEach(function(task){
-      var startDay=(task.tn.charCodeAt(0)+task.sec.charCodeAt(0))%4;
-      // Pass 1: spread — one session per day
-      for(var di=0;di<4&&task.placed<task.cnt;di++){
-        var d=(startDay+di)%4;
-        for(var s=0;s<=maxSlot(task.cls);s++){
-          if(canPlace(d,s,task.cs,task.cls,task.sub,[task.tn])){
-            doPlace(d,s,task.cs,task.sub,[task.tn]); task.placed++;
-            break;
-          }
+    var offset=(task.tn.charCodeAt(0)+task.cs.charCodeAt(0))%4; // stagger start day per teacher+section
+    for(var di=0;di<4&&task.placed<task.cnt;di++){
+      var d=(offset+di)%4;
+      for(var s=0;s<=maxSlot(task.cls);s++){
+        if(canPlace(d,s,task.cs,task.cls,task.sub,[task.tn])){
+          doPlace(d,s,task.cs,task.sub,[task.tn]); task.placed++;
+          break; // only one per day in pass 1
         }
       }
-      // Pass 2: fill remaining
-      for(var di=0;di<4&&task.placed<task.cnt;di++){
-        var d=(startDay+di)%4;
-        for(var s=0;s<=maxSlot(task.cls)&&task.placed<task.cnt;s++){
-          if(canPlace(d,s,task.cs,task.cls,task.sub,[task.tn])){
-            doPlace(d,s,task.cs,task.sub,[task.tn]); task.placed++;
-          }
-        }
-      }
-      task.unplaced=task.cnt-task.placed;
-    });
+    }
   });
 
-  // ── CONFLICT RESOLUTION ──
-  // For each unplaced session, try two strategies:
-  // Strategy A: section is blocked — move the section's blocker to another free slot
-  // Strategy B: teacher is blocked — move the teacher's blocker in ANOTHER section
-  //             to free up the teacher for this slot
-  var MAX_RESOLVE=400;
-  var resolveIter=0;
-  var unplacedTasks=others.filter(function(t){ return t.unplaced>0; });
+  // Pass 2: Fill remaining sessions (no per-day limit)
+  others.forEach(function(task){
+    for(var d=0;d<4&&task.placed<task.cnt;d++){
+      for(var s=0;s<=maxSlot(task.cls)&&task.placed<task.cnt;s++){
+        if(canPlace(d,s,task.cs,task.cls,task.sub,[task.tn])){
+          doPlace(d,s,task.cs,task.sub,[task.tn]); task.placed++;
+        }
+      }
+    }
+    task.unplaced=task.cnt-task.placed;
+  });
 
-  while(unplacedTasks.length&&resolveIter<MAX_RESOLVE){
-    resolveIter++;
+  // ── CONFLICT RESOLUTION (iterative, up to 6 rounds) ──────
+  // For each still-unplaced session:
+  //   Strategy A: teacher free, section blocked → try moving the blocker to another slot
+  //   Strategy B: section free, teacher blocked → try moving teacher's OTHER section blocker
+  //   Strategy C: both blocked → try moving section blocker first, then teacher blocker
+  // Each round recomputes unplaced list. Stops when no progress is made.
+
+  for(var round=0;round<6;round++){
     var progress=false;
-
-    unplacedTasks.forEach(function(task){
+    others.forEach(function(task){
       if(task.unplaced<=0) return;
-
-      for(var d=0;d<4&&task.unplaced>0;d++){
-        for(var s=0;s<=maxSlot(task.cls)&&task.unplaced>0;s++){
-
-          var sectionFree=!sBusy[d][s][task.cs]&&!tt[d][s][task.cs];
-          var teacherFree=!tBusy[d][s][task.tn];
-          var noSameSubToday=!(daySubBusy[d][task.cs]&&daySubBusy[d][task.cs][task.sub]);
-          var withinMax=s<=maxSlot(task.cls);
-
-          if(sectionFree&&teacherFree&&noSameSubToday&&withinMax){
-            // Slot is actually free — just place (shouldn't happen but catch it)
+      for(var d=0;d<4;d++){
+        for(var s=0;s<=maxSlot(task.cls);s++){
+          if(task.unplaced<=0) break;
+          if(canPlace(d,s,task.cs,task.cls,task.sub,[task.tn])){
+            // Slot opened up — place directly
             doPlace(d,s,task.cs,task.sub,[task.tn]);
             task.placed++; task.unplaced--; progress=true; continue;
           }
+          var secBusy=!!(sBusy[d][s][task.cs]||tt[d][s][task.cs]);
+          var tchBusy=!!tBusy[d][s][task.tn];
+          var subOk=!(daySubBusy[d][task.cs]&&daySubBusy[d][task.cs][task.sub]);
+          if(!subOk) continue; // can't fix a same-day-subject clash by moving something else
 
-          // Strategy A: teacher is free but section is blocked — move section blocker
-          if(teacherFree&&!sectionFree&&noSameSubToday){
+          // Strategy A: teacher is free but section slot is taken — move that blocker
+          if(!tchBusy&&secBusy){
             var blocker=tt[d][s][task.cs];
-            if(blocker&&!isLangSub(blocker.sub)){
-              for(var d2=0;d2<4;d2++){
-                for(var s2=0;s2<=maxSlot(task.cls);s2++){
-                  if(d2===d&&s2===s) continue;
-                  if(canPlace(d2,s2,task.cs,task.cls,blocker.sub,blocker.tl)){
-                    undoPlace(d,s,task.cs,blocker.sub,blocker.tl);
-                    doPlace(d2,s2,task.cs,blocker.sub,blocker.tl);
-                    if(canPlace(d,s,task.cs,task.cls,task.sub,[task.tn])){
-                      doPlace(d,s,task.cs,task.sub,[task.tn]);
-                      task.placed++; task.unplaced--; progress=true;
-                      d2=99; s2=99; // break out
-                    } else {
-                      undoPlace(d2,s2,task.cs,blocker.sub,blocker.tl);
-                      doPlace(d,s,task.cs,blocker.sub,blocker.tl);
-                    }
-                  }
+            if(!blocker||isLangSub(blocker.sub)) continue;
+            var bCls=parseInt(task.cs.split('-')[0]);
+            for(var d2=0;d2<4;d2++) for(var s2=0;s2<=maxSlot(bCls);s2++){
+              if(d2===d&&s2===s) continue;
+              if(canPlace(d2,s2,task.cs,bCls,blocker.sub,blocker.tl)){
+                undoPlace(d,s,task.cs,blocker.sub,blocker.tl);
+                doPlace(d2,s2,task.cs,blocker.sub,blocker.tl);
+                if(canPlace(d,s,task.cs,task.cls,task.sub,[task.tn])){
+                  doPlace(d,s,task.cs,task.sub,[task.tn]);
+                  task.placed++; task.unplaced--; progress=true;
+                  d2=99; s2=99;
+                } else {
+                  // Revert — placing blocker elsewhere still doesn't free slot for task
+                  undoPlace(d2,s2,task.cs,blocker.sub,blocker.tl);
+                  doPlace(d,s,task.cs,blocker.sub,blocker.tl);
                 }
+                if(d2===99) break;
               }
             }
           }
 
           if(task.unplaced<=0) break;
 
-          // Strategy B: section is free but teacher is blocked in ANOTHER section —
-          // find what's making the teacher busy and move it
-          if(sectionFree&&!teacherFree&&noSameSubToday){
-            // Find which other section is making the teacher busy this slot
-            var teacherBlockerCs=null, teacherBlocker=null;
-            Object.keys(tt[d][s]).forEach(function(otherCs){
-              if(otherCs===task.cs) return;
-              var c=tt[d][s][otherCs];
-              if(c&&c.tl.indexOf(task.tn)>=0){ teacherBlockerCs=otherCs; teacherBlocker=c; }
-            });
-            if(teacherBlockerCs&&teacherBlocker&&!isLangSub(teacherBlocker.sub)){
-              var tbCls=parseInt(teacherBlockerCs.split('-')[0]);
-              for(var d2=0;d2<4;d2++){
-                for(var s2=0;s2<=maxSlot(tbCls);s2++){
-                  if(d2===d&&s2===s) continue;
-                  if(canPlace(d2,s2,teacherBlockerCs,tbCls,teacherBlocker.sub,teacherBlocker.tl)){
-                    undoPlace(d,s,teacherBlockerCs,teacherBlocker.sub,teacherBlocker.tl);
-                    doPlace(d2,s2,teacherBlockerCs,teacherBlocker.sub,teacherBlocker.tl);
-                    if(canPlace(d,s,task.cs,task.cls,task.sub,[task.tn])){
-                      doPlace(d,s,task.cs,task.sub,[task.tn]);
-                      task.placed++; task.unplaced--; progress=true;
-                      d2=99; s2=99;
-                    } else {
-                      undoPlace(d2,s2,teacherBlockerCs,teacherBlocker.sub,teacherBlocker.tl);
-                      doPlace(d,s,teacherBlockerCs,teacherBlocker.sub,teacherBlocker.tl);
-                    }
-                  }
+          // Strategy B: section slot is free but teacher is occupied elsewhere — move teacher's blocker
+          if(tchBusy&&!secBusy){
+            var tbCs=null, tbCell=null;
+            for(var ocs in tt[d][s]){
+              var c=tt[d][s][ocs];
+              if(c&&c.tl.indexOf(task.tn)>=0&&!isLangSub(c.sub)){ tbCs=ocs; tbCell=c; break; }
+            }
+            if(!tbCs) continue;
+            var tbCls=parseInt(tbCs.split('-')[0]);
+            for(var d2=0;d2<4;d2++) for(var s2=0;s2<=maxSlot(tbCls);s2++){
+              if(d2===d&&s2===s) continue;
+              if(canPlace(d2,s2,tbCs,tbCls,tbCell.sub,tbCell.tl)){
+                undoPlace(d,s,tbCs,tbCell.sub,tbCell.tl);
+                doPlace(d2,s2,tbCs,tbCell.sub,tbCell.tl);
+                if(canPlace(d,s,task.cs,task.cls,task.sub,[task.tn])){
+                  doPlace(d,s,task.cs,task.sub,[task.tn]);
+                  task.placed++; task.unplaced--; progress=true;
+                  d2=99; s2=99;
+                } else {
+                  undoPlace(d2,s2,tbCs,tbCell.sub,tbCell.tl);
+                  doPlace(d,s,tbCs,tbCell.sub,tbCell.tl);
                 }
+                if(d2===99) break;
               }
             }
           }
         }
       }
     });
-
-    unplacedTasks=others.filter(function(t){ return t.unplaced>0; });
     if(!progress) break;
   }
 
@@ -1324,19 +1307,21 @@ function refreshCurrentView(){
 
 // ── DOWNLOAD ──────────────────────────────────────────────
 function buildPrintGrid(getCellHTML,ms){
-  var h='<table style="border-collapse:collapse;width:100%;font-size:11px;"><tr><th style="border:1px solid #ccc;padding:5px;background:#e4eaf1;">Slot</th>';
-  DAYS.forEach(function(d){ h+='<th style="border:1px solid #ccc;padding:5px;background:#e4eaf1;">'+esc(d)+'</th>'; });
+  var h='<table style="border-collapse:collapse;width:100%;font-size:11px;"><tr><th style="border:1px solid #ccc;padding:5px;background:#e4eaf1;">Slot / Day</th>';
+  DAYS.forEach(function(day){ h+='<th style="border:1px solid #ccc;padding:5px;background:#e4eaf1;">'+esc(day)+'</th>'; });
   h+='</tr>';
-  for(var s=0;s<4;s++){
-    h+='<tr><td style="border:1px solid #ccc;padding:5px;font-size:10px;color:#5a6a7e;">'+esc(SLOTS[s])+'</td>';
-    for(var d=0;d<4;d++) h+=(s>ms)?'<td style="border:1px solid #ccc;padding:5px;background:#f5f5f5;"></td>':getCellHTML(d,s);
+  for(var si=0;si<4;si++){
+    h+='<tr><td style="border:1px solid #ccc;padding:5px;font-size:10px;color:#5a6a7e;white-space:nowrap;">'+esc(SLOTS[si])+'</td>';
+    for(var di=0;di<4;di++){
+      h+=(si>ms)?'<td style="border:1px solid #ccc;padding:5px;background:#f5f5f5;color:#ccc;text-align:center;">–</td>':getCellHTML(di,si);
+    }
     h+='</tr>';
   }
   return h+'</table>';
 }
 function wrapPage(title,body){ return '<div style="page-break-after:always;padding:16px;"><h3 style="font-family:Segoe UI,sans-serif;color:#1c3557;margin:0 0 8px;">'+esc(title)+'</h3>'+body+'</div>'; }
 function triggerDL(html,fn){
-  var full='<!DOCTYPE html><html><head><meta charset="UTF-8"><title>'+fn+'</title><style>body{font-family:Segoe UI,sans-serif;}@media print{div{page-break-after:always;}}</style></head><body>'+html+'</body></html>';
+  var full='<!DOCTYPE html><html><head><meta charset="UTF-8"><title>'+fn+'</title><style>body{font-family:Segoe UI,sans-serif;margin:16px;}table{border-collapse:collapse;width:100%;}th,td{border:1px solid #ccc;padding:6px 8px;font-size:12px;}th{background:#e4eaf1;}@media print{div{page-break-after:always;}}</style></head><body>'+html+'</body></html>';
   var a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([full],{type:'text/html'})); a.download=fn; a.click();
 }
 function dlTeacherWise(){
@@ -1344,13 +1329,18 @@ function dlTeacherWise(){
   var pages='';
   allTrList.forEach(function(name){
     var cnt=0;
-    var grid=buildPrintGrid(function(d,s){
-      var found=[]; Object.keys(ttData[d][s]).forEach(function(cs){ var c=ttData[d][s][cs]; if(c&&c.tl.indexOf(name)>=0) found.push({cs:cs,sub:c.sub}); });
-      if(!found.length) return '<td style="border:1px solid #ccc;padding:5px;color:#aaa;">Free</td>';
-      cnt++; var f=found[0];
-      return '<td style="border:1px solid #ccc;padding:5px;"><b>'+esc(f.sub)+'</b><br>'+esc(fmtCS(f.cs))+(found.length>1?' ⚠':'')+'</td>';
+    var grid=buildPrintGrid(function(di,si){
+      var found=[];
+      Object.keys(ttData[di][si]).forEach(function(cs){
+        var c=ttData[di][si][cs];
+        if(c&&c.tl.indexOf(name)>=0) found.push({cs:cs,sub:c.sub});
+      });
+      if(!found.length) return '<td style="border:1px solid #ccc;padding:5px;color:#aaa;text-align:center;">Free</td>';
+      cnt+=found.length;
+      var inner=found.map(function(f){ return '<b>'+esc(f.sub)+'</b><br><span style="font-size:10px;color:#555;">'+esc(fmtCS(f.cs))+'</span>'; }).join('<hr style="margin:3px 0;border:none;border-top:0.5px solid #ddd;">');
+      return '<td style="border:1px solid #ccc;padding:5px;">'+inner+'</td>';
     },3);
-    pages+=wrapPage(name+' — '+cnt+' session(s)',grid);
+    pages+=wrapPage(name+' — '+cnt+' session(s) over 4 days',grid);
   });
   triggerDL(pages,'Teacher_Timetables_GDG.html');
 }
@@ -1358,11 +1348,12 @@ function dlSectionWise(){
   if(!ttData){ alert('Generate first.'); return; }
   var pages='';
   allCsList.forEach(function(cs){
-    var ms=maxSlot(parseInt(cs.split('-')[0]));
-    var grid=buildPrintGrid(function(d,s){
-      var c=ttData[d][s][cs];
-      if(!c) return '<td style="border:1px solid #ccc;padding:5px;color:#aaa;">—</td>';
-      return '<td style="border:1px solid #ccc;padding:5px;"><b>'+esc(c.sub)+'</b><br>'+c.tl.map(esc).join(', ')+'</td>';
+    var clsNum=parseInt(cs.split('-')[0]);
+    var ms=maxSlot(clsNum);
+    var grid=buildPrintGrid(function(di,si){
+      var c=ttData[di][si][cs];
+      if(!c) return '<td style="border:1px solid #ccc;padding:5px;color:#aaa;text-align:center;">—</td>';
+      return '<td style="border:1px solid #ccc;padding:5px;"><b>'+esc(c.sub)+'</b><br><span style="font-size:10px;color:#555;">'+c.tl.map(esc).join(', ')+'</span></td>';
     },ms);
     pages+=wrapPage(fmtCS(cs),grid);
   });
