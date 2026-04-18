@@ -551,7 +551,7 @@ function normSub(s) {
   if(l==='english') return 'English';
   if(l==='science') return 'Science';
   if(['social_science','social_studies','sst','ss'].indexOf(l)>=0) return 'Social Science';
-  if(l==='civics') return 'Civics';
+  if(l==='civics'||l==='political_science'||l==='pol_science'||l==='pol._science') return 'Civics';
   if(l==='geography') return 'Geography';
   if(l==='history') return 'History';
   if(l==='economics') return 'Economics';
@@ -824,32 +824,109 @@ function runSched() {
   var others=nonLangA.filter(function(a){ return !isLangSub(a.sub); });
   others.sort(function(a,b){ return b.cnt-a.cnt; });
 
-  others.forEach(function(task){
-    // Try to spread sessions across different days rather than packing into day 0 first.
-    // Rotate starting day per teacher+section so teachers don't all collide on day 0.
+  // Helper: remove a placed session from all tracking structures
+  function undoPlace(d,s,cs,sub,tList){
+    delete tt[d][s][cs];
+    delete sBusy[d][s][cs];
+    // Recheck if subject still appears elsewhere today for this section
+    var stillToday=false;
+    for(var ss=0;ss<4;ss++){
+      if(ss===s) continue;
+      if(tt[d][ss][cs] && tt[d][ss][cs].sub===sub){ stillToday=true; break; }
+    }
+    if(!stillToday && daySubBusy[d][cs]) delete daySubBusy[d][cs][sub];
+    // Recheck each teacher — only clear tBusy if they have nothing else this slot
+    tList.forEach(function(tn){
+      var stillBusy=false;
+      Object.keys(tt[d][s]).forEach(function(otherCs){
+        if(tt[d][s][otherCs] && tt[d][s][otherCs].tl.indexOf(tn)>=0) stillBusy=true;
+      });
+      if(!stillBusy) delete tBusy[d][s][tn];
+    });
+  }
+
+  // Place a task, spreading across days
+  function placeTask(task){
     var startDay=(task.tn.charCodeAt(0)+task.sec.charCodeAt(0))%4;
-    var placed=0;
     // Pass 1: at most one session per day (spread)
-    for(var di=0;di<4&&placed<task.cnt;di++){
+    for(var di=0;di<4&&task.placed<task.cnt;di++){
       var d=(startDay+di)%4;
-      for(var s=0;s<=maxSlot(task.cls)&&placed<task.cnt;s++){
+      for(var s=0;s<=maxSlot(task.cls);s++){
         if(canPlace(d,s,task.cs,task.cls,task.sub,[task.tn])){
-          doPlace(d,s,task.cs,task.sub,[task.tn]); placed++; task.placed++;
-          break; // one per day in pass 1
+          doPlace(d,s,task.cs,task.sub,[task.tn]); task.placed++;
+          break;
         }
       }
     }
-    // Pass 2: fill remaining sessions in any free slot
-    for(var di=0;di<4&&placed<task.cnt;di++){
+    // Pass 2: fill any remaining in any free slot
+    for(var di=0;di<4&&task.placed<task.cnt;di++){
       var d=(startDay+di)%4;
-      for(var s=0;s<=maxSlot(task.cls)&&placed<task.cnt;s++){
+      for(var s=0;s<=maxSlot(task.cls)&&task.placed<task.cnt;s++){
         if(canPlace(d,s,task.cs,task.cls,task.sub,[task.tn])){
-          doPlace(d,s,task.cs,task.sub,[task.tn]); placed++; task.placed++;
+          doPlace(d,s,task.cs,task.sub,[task.tn]); task.placed++;
         }
       }
     }
     task.unplaced=task.cnt-task.placed;
-  });
+  }
+
+  others.forEach(function(task){ placeTask(task); });
+
+  // ── Conflict resolution pass ──
+  // For each still-unplaced session, find a blocker in the same section or same teacher
+  // and try to move it to another free slot, then retry placement.
+  var MAX_RESOLVE=200; // safety cap on iterations
+  var resolveIter=0;
+  var unplacedTasks=others.filter(function(t){ return t.unplaced>0; });
+
+  while(unplacedTasks.length && resolveIter<MAX_RESOLVE){
+    resolveIter++;
+    var progress=false;
+
+    unplacedTasks.forEach(function(task){
+      if(task.unplaced<=0) return;
+
+      // Find a (d,s) where the section is occupied (blocker exists) and
+      // the teacher is free — meaning if we could move the blocker, we could place here.
+      for(var d=0;d<4&&task.unplaced>0;d++){
+        for(var s=0;s<=maxSlot(task.cls)&&task.unplaced>0;s++){
+          // Teacher must be free this slot
+          if(tBusy[d][s][task.tn]) continue;
+          // Section must be occupied (that's the only remaining blocker)
+          var blocker=tt[d][s][task.cs];
+          if(!blocker) continue;
+          // Don't displace a language session
+          if(isLangSub(blocker.sub)) continue;
+          // Try to find an alternate slot for the blocker
+          var moved=false;
+          for(var d2=0;d2<4&&!moved;d2++){
+            for(var s2=0;s2<=maxSlot(task.cls)&&!moved;s2++){
+              if(d2===d&&s2===s) continue;
+              if(canPlace(d2,s2,task.cs,task.cls,blocker.sub,blocker.tl)){
+                // Move blocker to (d2,s2)
+                undoPlace(d,s,task.cs,blocker.sub,blocker.tl);
+                doPlace(d2,s2,task.cs,blocker.sub,blocker.tl);
+                // Now try to place the task here
+                if(canPlace(d,s,task.cs,task.cls,task.sub,[task.tn])){
+                  doPlace(d,s,task.cs,task.sub,[task.tn]);
+                  task.placed++; task.unplaced--;
+                  progress=true;
+                  moved=true;
+                } else {
+                  // Undo the blocker move — didn't help
+                  undoPlace(d2,s2,task.cs,blocker.sub,blocker.tl);
+                  doPlace(d,s,task.cs,blocker.sub,blocker.tl);
+                }
+              }
+            }
+          }
+        }
+      }
+    });
+
+    unplacedTasks=others.filter(function(t){ return t.unplaced>0; });
+    if(!progress) break; // no improvement possible
+  }
 
   ttData=tt;
 
