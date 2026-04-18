@@ -532,12 +532,21 @@ var ONCE_PER_WEEK_7_8 = ['civics','geography','history','biology','physics','che
 var ONCE_PER_WEEK_9_10 = ['civics','geography','history','economics','biology','physics','chemistry'];
 
 // Language subject helpers
-function isLangSub(sub){ var l=sub.toLowerCase(); return ['hindi_2l','hindi_3l','bengali_2l','bengali_3l','hindi','bengali'].indexOf(l)>=0; }
-function langBase(sub){ return sub.toLowerCase().indexOf('hindi')>=0?'Hindi':'Bengali'; }
-function langLevel(sub){ return sub.toLowerCase().indexOf('_3l')>=0?'3L':'2L'; }
+function normLangStr(s){
+  // Normalise bracket format: HINDI(2L) → hindi_2l, BENGALI(3L) → bengali_3l etc.
+  return s.trim().toLowerCase()
+    .replace(/\s+/g,'_')
+    .replace(/hindi\s*\(\s*2l\s*\)/,'hindi_2l')
+    .replace(/hindi\s*\(\s*3l\s*\)/,'hindi_3l')
+    .replace(/bengali\s*\(\s*2l\s*\)/,'bengali_2l')
+    .replace(/bengali\s*\(\s*3l\s*\)/,'bengali_3l');
+}
+function isLangSub(sub){ var l=normLangStr(sub); return ['hindi_2l','hindi_3l','bengali_2l','bengali_3l','hindi','bengali'].indexOf(l)>=0; }
+function langBase(sub){ return normLangStr(sub).indexOf('hindi')>=0?'Hindi':'Bengali'; }
+function langLevel(sub){ return normLangStr(sub).indexOf('_3l')>=0?'3L':'2L'; }
 
 function normSub(s) {
-  var l=s.trim().toLowerCase().replace(/\s+/g,'_');
+  var l=normLangStr(s);
   if(['maths','mathematics','math'].indexOf(l)>=0) return 'Maths';
   if(l==='english') return 'English';
   if(l==='science') return 'Science';
@@ -549,7 +558,7 @@ function normSub(s) {
   if(l==='biology') return 'Biology';
   if(l==='physics') return 'Physics';
   if(l==='chemistry') return 'Chemistry';
-  // Language variants for VI-VIII (must use _2L / _3L)
+  // Language variants for VI-VIII (must use _2L / _3L, bracket or underscore form)
   if(['hindi_2l','hindi_2nd','hindi_second'].indexOf(l)>=0) return 'Hindi_2L';
   if(['hindi_3l','hindi_3rd','hindi_third'].indexOf(l)>=0) return 'Hindi_3L';
   if(['bengali_2l','bengali_2nd','bengali_second'].indexOf(l)>=0) return 'Bengali_2L';
@@ -761,7 +770,7 @@ function runSched() {
             var hFree= !tBusy[d][s][ht.tn] || hCount>0; // free or already teaching this slot
             var bFree= !bt || (!tBusy[d][s][bt.tn] || bCount>0);
             if(!hFree || !bFree) return;  // teacher genuinely busy elsewhere
-            if(hCount>=2 || (bt&&bCount>=2)) return; // already teaching 2 sections this slot
+            // No cap on sections — a language teacher can teach ALL sections simultaneously
             sectionsToPlace.push(cand);
             hSections[ht.tn]=(hSections[ht.tn]||0)+1;
             if(bt) bSections[bt.tn]=(bSections[bt.tn]||0)+1;
@@ -799,16 +808,10 @@ function runSched() {
       // Handle Bengali sections that have NO Hindi partner at this grade/level
       grpB.filter(function(t){ return !grpH.find(function(h){ return h.cs===t.cs; }); }).forEach(function(ba){
         if(ba.placed===undefined) ba.placed=0;
-        var startDay=(ba.tn.charCodeAt(0)+(ba.sec||'A').charCodeAt(0))%4;
-        for(var pass=0;pass<2;pass++){
-          for(var di=0;di<4;di++){
-            var d=(startDay+di)%4;
+        for(var d=0;d<4;d++){
+          for(var s=0;s<=maxSlot(grade);s++){
             if(ba._rem<=0) break;
-            if(pass===0&&daySubBusy[d]&&daySubBusy[d][ba.cs]&&daySubBusy[d][ba.cs][bSub]) continue;
-            for(var s=0;s<=maxSlot(grade);s++){
-              if(ba._rem<=0) break;
-              if(canPlace(d,s,ba.cs,grade,bSub,[ba.tn])){ doPlace(d,s,ba.cs,bSub,[ba.tn]); ba._rem--; ba.placed++; break; }
-            }
+            if(canPlace(d,s,ba.cs,grade,bSub,[ba.tn])){ doPlace(d,s,ba.cs,bSub,[ba.tn]); ba._rem--; ba.placed++; }
           }
         }
         ba.unplaced=ba._rem||0;
@@ -817,55 +820,35 @@ function runSched() {
   });
 
   // ── Schedule everything else ──
-  // Sort: most-sessions first (hardest to place), then by how many OTHER tasks share the same
-  // teacher — teachers with many sections are most clash-prone, schedule them first.
-  var others=nonLangA.slice();
+  // Sort: most sessions first (hardest to place first)
+  var others=nonLangA.filter(function(a){ return !isLangSub(a.sub); });
+  others.sort(function(a,b){ return b.cnt-a.cnt; });
 
-  // Count how many tasks each teacher has (across all non-lang assignments)
-  var teacherTaskCount={};
-  others.forEach(function(a){ teacherTaskCount[a.tn]=(teacherTaskCount[a.tn]||0)+1; });
-
-  others.sort(function(a,b){
-    if(b.cnt !== a.cnt) return b.cnt - a.cnt;           // more sessions first
-    return (teacherTaskCount[b.tn]||0)-(teacherTaskCount[a.tn]||0); // busier teacher first
-  });
-
-  // Helper: try to place `task.cnt` sessions spread across days, starting from day `startDay`.
-  // Returns number of newly placed sessions.
-  function placeSpreaded(task, startDay) {
-    var placed = 0;
-    var ms = maxSlot(task.cls);
-    // Two-pass: first try to put at most one session per day (spread), then fill remainders.
-    for(var pass=0; pass<2 && placed<task.cnt; pass++){
-      for(var di=0; di<4 && placed<task.cnt; di++){
-        var d=(startDay+di)%4;
-        // In pass 0: skip if this section already has this subject on day d
-        if(pass===0 && daySubBusy[d][task.cs] && daySubBusy[d][task.cs][task.sub]) continue;
-        for(var s=0; s<=ms && placed<task.cnt; s++){
-          if(canPlace(d,s,task.cs,task.cls,task.sub,[task.tn])){
-            doPlace(d,s,task.cs,task.sub,[task.tn]); placed++; task.placed++;
-            break; // one slot per day per pass
-          }
+  others.forEach(function(task){
+    // Try to spread sessions across different days rather than packing into day 0 first.
+    // Rotate starting day per teacher+section so teachers don't all collide on day 0.
+    var startDay=(task.tn.charCodeAt(0)+task.sec.charCodeAt(0))%4;
+    var placed=0;
+    // Pass 1: at most one session per day (spread)
+    for(var di=0;di<4&&placed<task.cnt;di++){
+      var d=(startDay+di)%4;
+      for(var s=0;s<=maxSlot(task.cls)&&placed<task.cnt;s++){
+        if(canPlace(d,s,task.cs,task.cls,task.sub,[task.tn])){
+          doPlace(d,s,task.cs,task.sub,[task.tn]); placed++; task.placed++;
+          break; // one per day in pass 1
         }
       }
     }
-    return placed;
-  }
-
-  // First pass: schedule every task with spread starting from a hash of teacher+section
-  // so different teachers don't all pile into day 0.
-  others.forEach(function(task){
-    var startDay = (task.tn.charCodeAt(0) + task.sec.charCodeAt(0)) % 4;
-    placeSpreaded(task, startDay);
-    task.unplaced = task.cnt - task.placed;
-  });
-
-  // Second pass: retry any still-unplaced tasks starting from a different offset
-  others.filter(function(t){ return t.unplaced>0; }).forEach(function(task){
-    var retry = (task.cnt - task.unplaced); // sessions already placed
-    var startDay = (retry + 1) % 4;
-    var extra = placeSpreaded(task, startDay);
-    task.unplaced = task.cnt - task.placed;
+    // Pass 2: fill remaining sessions in any free slot
+    for(var di=0;di<4&&placed<task.cnt;di++){
+      var d=(startDay+di)%4;
+      for(var s=0;s<=maxSlot(task.cls)&&placed<task.cnt;s++){
+        if(canPlace(d,s,task.cs,task.cls,task.sub,[task.tn])){
+          doPlace(d,s,task.cs,task.sub,[task.tn]); placed++; task.placed++;
+        }
+      }
+    }
+    task.unplaced=task.cnt-task.placed;
   });
 
   ttData=tt;
