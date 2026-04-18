@@ -5,301 +5,143 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Timetable Generator – G D Goenka School Dakshineswar</title>
   <style>
-    /* ── Reset & Base ── */
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
     :root {
-      --navy:       #1c3557;
-      --navy-dark:  #162942;
-      --green:      #0f6e56;
-      --green-dark: #085041;
-      --bg:         #f0f4f8;
-      --bg2:        #e4eaf1;
-      --card:       #ffffff;
-      --border:     rgba(0,0,0,0.10);
-      --border2:    rgba(0,0,0,0.18);
-      --text:       #1a2535;
-      --muted:      #5a6a7e;
-      --hint:       #8fa0b4;
-      --danger-bg:  #fff0f0;
-      --danger-tx:  #b91c1c;
-      --danger-bd:  #fca5a5;
-      --rad:        8px;
-      --rad-lg:     12px;
+      --navy:#1c3557; --navy-dark:#162942; --green:#0f6e56; --green-dark:#085041;
+      --bg:#f0f4f8; --bg2:#e4eaf1; --card:#ffffff;
+      --border:rgba(0,0,0,0.10); --border2:rgba(0,0,0,0.18);
+      --text:#1a2535; --muted:#5a6a7e; --hint:#8fa0b4;
+      --danger-bg:#fff0f0; --danger-tx:#b91c1c; --danger-bd:#fca5a5;
+      --rad:8px; --rad-lg:12px;
     }
-
-    body {
-      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-      background: var(--bg);
-      color: var(--text);
-      min-height: 100vh;
-      padding: 20px;
-    }
-
-    /* ── Shell ── */
-    .shell {
-      max-width: 980px;
-      margin: 0 auto;
-      border-radius: var(--rad-lg);
-      overflow: hidden;
-      border: 0.5px solid var(--border);
-      box-shadow: 0 4px 24px rgba(0,0,0,0.08);
-    }
-
-    /* ── Header ── */
-    .hdr {
-      background: var(--navy);
-      color: #fff;
-      padding: 18px 22px;
-      display: flex;
-      align-items: center;
-      gap: 16px;
-    }
-    .hdr-logo {
-      width: 44px; height: 44px;
-      background: rgba(255,255,255,0.15);
-      border-radius: 50%;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 20px; flex-shrink: 0;
-    }
-    .hdr h1 { font-size: 16px; font-weight: 600; }
-    .hdr p  { font-size: 11px; opacity: .65; margin-top: 3px; }
-
-    /* ── Tabs ── */
-    .tabs {
-      display: flex;
-      background: var(--card);
-      border-bottom: 0.5px solid var(--border);
-    }
-    .tab {
-      padding: 11px 20px;
-      border: none; background: none;
-      font-size: 13px; color: var(--muted);
-      cursor: pointer;
-      border-bottom: 2px solid transparent;
-      margin-bottom: -0.5px;
-      transition: all .15s;
-    }
-    .tab.on { color: var(--navy); border-bottom-color: var(--navy); font-weight: 600; }
-
-    /* ── Body ── */
-    .body {
-      padding: 18px;
-      background: var(--bg);
-      min-height: 500px;
-    }
-
-    /* ── Cards ── */
-    .card {
-      background: var(--card);
-      border: 0.5px solid var(--border);
-      border-radius: var(--rad-lg);
-      padding: 16px 18px;
-      margin-bottom: 14px;
-    }
-    .ct { font-size: 13px; font-weight: 600; margin-bottom: 13px; color: var(--text); }
-
-    /* ── Forms ── */
-    label.lbl {
-      display: block;
-      font-size: 11px; font-weight: 600;
-      color: var(--muted);
-      text-transform: uppercase;
-      letter-spacing: .04em;
-      margin-bottom: 5px;
-    }
-    input, select {
-      width: 100%;
-      padding: 7px 10px;
-      border: 0.5px solid var(--border2);
-      border-radius: var(--rad);
-      font-size: 13px;
-      background: var(--card);
-      color: var(--text);
-      outline: none;
-      transition: border-color .15s;
-    }
-    input:focus, select:focus { border-color: var(--navy); }
-
-    .rg-hd {
-      display: grid;
-      grid-template-columns: 70px 70px 1fr 90px 34px;
-      gap: 7px;
-      margin-bottom: 5px;
-      padding: 0 2px;
-    }
-    .rg-hd span { font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
-    .ar {
-      display: grid;
-      grid-template-columns: 70px 70px 1fr 90px 34px;
-      gap: 7px;
-      margin-bottom: 7px;
-      align-items: center;
-    }
-
-    /* ── Buttons ── */
-    .btn {
-      display: inline-flex; align-items: center; gap: 5px;
-      padding: 7px 14px;
-      border: 0.5px solid var(--border2);
-      border-radius: var(--rad);
-      font-size: 12px; font-weight: 500;
-      cursor: pointer;
-      background: var(--card);
-      color: var(--text);
-      transition: background .15s;
-    }
-    .btn:hover { background: var(--bg2); }
-    .btn-p { background: var(--navy); color: #fff; border-color: var(--navy); }
-    .btn-p:hover { background: var(--navy-dark); }
-    .btn-g { background: var(--green); color: #fff; border-color: var(--green); }
-    .btn-g:hover { background: var(--green-dark); }
-    .btn-d { color: var(--danger-tx); border-color: var(--danger-bd); }
-    .btn-d:hover { background: var(--danger-bg); }
-    .btn-sm { padding: 4px 10px; font-size: 12px; }
-
-    /* ── Teacher chips ── */
-    .tc {
-      display: flex; align-items: flex-start; justify-content: space-between;
-      padding: 12px 15px;
-      border: 0.5px solid var(--border);
-      border-radius: var(--rad);
-      margin-bottom: 8px;
-      background: var(--card);
-    }
-    .tn { font-size: 13px; font-weight: 600; margin-bottom: 7px; }
-    .tags { display: flex; flex-wrap: wrap; gap: 5px; }
-    .tag {
-      font-size: 11px; padding: 3px 8px;
-      border-radius: var(--rad);
-      background: var(--bg2);
-      color: var(--muted);
-    }
-
-    /* ── Empty state ── */
-    .empty {
-      text-align: center; padding: 40px 16px;
-      color: var(--muted); font-size: 13px;
-    }
-
-    /* ── View toggle ── */
-    .vt {
-      display: flex; gap: 3px;
-      background: var(--bg2); padding: 3px;
-      border-radius: var(--rad); width: fit-content;
-      margin-bottom: 14px;
-    }
-    .vb {
-      padding: 5px 14px;
-      border: none; border-radius: calc(var(--rad) - 2px);
-      font-size: 12px; cursor: pointer;
-      background: none; color: var(--muted);
-    }
-    .vb.on {
-      background: var(--card); color: var(--text);
-      font-weight: 600; border: 0.5px solid var(--border);
-    }
-
-    /* ── Section/teacher selector buttons ── */
-    .sbs { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 14px; }
-    .sb {
-      padding: 5px 13px;
-      border: 0.5px solid var(--border2);
-      border-radius: var(--rad);
-      font-size: 12px; cursor: pointer;
-      background: var(--card); color: var(--text);
-      transition: all .15s;
-    }
-    .sb.on { background: var(--navy); color: #fff; border-color: var(--navy); }
-
-    /* ── Timetable Grid ── */
-    .ttg {
-      display: grid;
-      grid-template-columns: 116px repeat(4, 1fr);
-      gap: 4px;
-    }
-    .tth {
-      background: var(--bg2);
-      border: 0.5px solid var(--border);
-      border-radius: var(--rad);
-      padding: 7px 9px;
-      font-size: 12px; font-weight: 600;
-      text-align: center; color: var(--muted);
-    }
-    .ttsl {
-      background: var(--bg2);
-      border: 0.5px solid var(--border);
-      border-radius: var(--rad);
-      padding: 7px 9px;
-      font-size: 10px; color: var(--muted);
-      display: flex; align-items: center;
-      line-height: 1.3;
-    }
-    .ttc {
-      border-radius: var(--rad);
-      padding: 8px 10px;
-      min-height: 64px;
-      display: flex; flex-direction: column;
-      justify-content: center;
-      font-size: 11px;
-    }
-    .ttc.emp {
-      background: var(--bg2);
-      border: 0.5px dashed var(--border);
-      color: var(--hint);
-      align-items: center; font-size: 11px;
-    }
-    .ttc.na { background: var(--bg); border: 0.5px solid var(--border); opacity: .3; }
-    .tsub { font-weight: 600; font-size: 12px; margin-bottom: 3px; }
-    .ttr  { font-size: 10px; line-height: 1.35; opacity: .85; }
-
-    /* Subject colour classes */
-    .s-en { background: #E6F1FB; border: 0.5px solid #378ADD; color: #0C447C; }
-    .s-ma { background: #EAF3DE; border: 0.5px solid #639922; color: #27500A; }
-    .s-sc { background: #EEEDFE; border: 0.5px solid #7F77DD; color: #3C3489; }
-    .s-ss { background: #FAEEDA; border: 0.5px solid #EF9F27; color: #633806; }
-    .s-hi { background: #FCEBEB; border: 0.5px solid #E24B4A; color: #791F1F; }
-    .s-co { background: #E1F5EE; border: 0.5px solid #1D9E75; color: #085041; }
-    .s-ai { background: #FBEAF0; border: 0.5px solid #D4537E; color: #72243E; }
-    .s-df { background: var(--bg2); border: 0.5px solid var(--border2); color: var(--muted); }
-
-    /* ── Info bar ── */
-    .info-bar {
-      font-size: 12px; color: var(--muted);
-      margin-bottom: 12px;
-    }
-
-    /* ── Legend ── */
-    .legend { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 14px; }
-    .leg { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--muted); }
-    .leg-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
-
-    /* ── Footer ── */
-    .footer {
-      background: var(--navy);
-      color: rgba(255,255,255,0.5);
-      text-align: center;
-      font-size: 11px;
-      padding: 12px;
-    }
-
-    /* ── Responsive ── */
-    @media (max-width: 600px) {
-      body { padding: 10px; }
-      .ttg { grid-template-columns: 90px repeat(4, 1fr); }
-      .tth, .ttsl { font-size: 10px; padding: 5px 6px; }
-      .tsub { font-size: 11px; }
-      .ar, .rg-hd {
-        grid-template-columns: 60px 60px 1fr 70px 30px;
-        gap: 5px;
-      }
+    body { font-family:'Segoe UI',system-ui,sans-serif; background:var(--bg); color:var(--text); min-height:100vh; padding:20px; }
+    .shell { max-width:980px; margin:0 auto; border-radius:var(--rad-lg); overflow:hidden; border:0.5px solid var(--border); box-shadow:0 4px 24px rgba(0,0,0,0.08); }
+    .hdr { background:var(--navy); color:#fff; padding:18px 22px; display:flex; align-items:center; gap:16px; }
+    .hdr-logo { width:44px; height:44px; background:rgba(255,255,255,0.15); border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:20px; flex-shrink:0; }
+    .hdr h1 { font-size:16px; font-weight:600; }
+    .hdr p  { font-size:11px; opacity:.65; margin-top:3px; }
+    .hdr-right { margin-left:auto; display:flex; align-items:center; gap:10px; flex-shrink:0; }
+    .who-badge { font-size:11px; background:rgba(255,255,255,0.15); border-radius:20px; padding:4px 12px; color:#fff; }
+    .tabs { display:flex; background:var(--card); border-bottom:0.5px solid var(--border); }
+    .tab { padding:11px 20px; border:none; background:none; font-size:13px; color:var(--muted); cursor:pointer; border-bottom:2px solid transparent; margin-bottom:-0.5px; transition:all .15s; }
+    .tab.on { color:var(--navy); border-bottom-color:var(--navy); font-weight:600; }
+    .body { padding:18px; background:var(--bg); min-height:500px; }
+    .card { background:var(--card); border:0.5px solid var(--border); border-radius:var(--rad-lg); padding:16px 18px; margin-bottom:14px; }
+    .ct { font-size:13px; font-weight:600; margin-bottom:13px; color:var(--text); }
+    label.lbl { display:block; font-size:11px; font-weight:600; color:var(--muted); text-transform:uppercase; letter-spacing:.04em; margin-bottom:5px; }
+    input, select { width:100%; padding:7px 10px; border:0.5px solid var(--border2); border-radius:var(--rad); font-size:13px; background:var(--card); color:var(--text); outline:none; transition:border-color .15s; }
+    input:focus, select:focus { border-color:var(--navy); }
+    .rg-hd { display:grid; grid-template-columns:70px 70px 1fr 90px 34px; gap:7px; margin-bottom:5px; padding:0 2px; }
+    .rg-hd span { font-size:11px; font-weight:600; color:var(--muted); text-transform:uppercase; letter-spacing:.04em; }
+    .ar { display:grid; grid-template-columns:70px 70px 1fr 90px 34px; gap:7px; margin-bottom:7px; align-items:center; }
+    .btn { display:inline-flex; align-items:center; gap:5px; padding:7px 14px; border:0.5px solid var(--border2); border-radius:var(--rad); font-size:12px; font-weight:500; cursor:pointer; background:var(--card); color:var(--text); transition:background .15s; }
+    .btn:hover { background:var(--bg2); }
+    .btn-p { background:var(--navy); color:#fff; border-color:var(--navy); }
+    .btn-p:hover { background:var(--navy-dark); }
+    .btn-g { background:var(--green); color:#fff; border-color:var(--green); }
+    .btn-g:hover { background:var(--green-dark); }
+    .btn-d { color:var(--danger-tx); border-color:var(--danger-bd); }
+    .btn-d:hover { background:var(--danger-bg); }
+    .btn-sm { padding:4px 10px; font-size:12px; }
+    .btn-o { background:#f5f0ff; color:#5b21b6; border-color:#c4b5fd; }
+    .btn-o:hover { background:#ede9fe; }
+    .tc { display:flex; align-items:flex-start; justify-content:space-between; padding:12px 15px; border:0.5px solid var(--border); border-radius:var(--rad); margin-bottom:8px; background:var(--card); }
+    .tn { font-size:13px; font-weight:600; margin-bottom:7px; }
+    .tags { display:flex; flex-wrap:wrap; gap:5px; }
+    .tag { font-size:11px; padding:3px 8px; border-radius:var(--rad); background:var(--bg2); color:var(--muted); }
+    .empty { text-align:center; padding:40px 16px; color:var(--muted); font-size:13px; }
+    .vt { display:flex; gap:3px; background:var(--bg2); padding:3px; border-radius:var(--rad); width:fit-content; margin-bottom:14px; }
+    .vb { padding:5px 14px; border:none; border-radius:calc(var(--rad) - 2px); font-size:12px; cursor:pointer; background:none; color:var(--muted); }
+    .vb.on { background:var(--card); color:var(--text); font-weight:600; border:0.5px solid var(--border); }
+    .sbs { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:14px; }
+    .sb { padding:5px 13px; border:0.5px solid var(--border2); border-radius:var(--rad); font-size:12px; cursor:pointer; background:var(--card); color:var(--text); transition:all .15s; }
+    .sb.on { background:var(--navy); color:#fff; border-color:var(--navy); }
+    .ttg { display:grid; grid-template-columns:116px repeat(4,1fr); gap:4px; }
+    .tth { background:var(--bg2); border:0.5px solid var(--border); border-radius:var(--rad); padding:7px 9px; font-size:12px; font-weight:600; text-align:center; color:var(--muted); }
+    .ttsl { background:var(--bg2); border:0.5px solid var(--border); border-radius:var(--rad); padding:7px 9px; font-size:10px; color:var(--muted); display:flex; align-items:center; line-height:1.3; }
+    .ttc { border-radius:var(--rad); padding:8px 10px; min-height:64px; display:flex; flex-direction:column; justify-content:center; font-size:11px; position:relative; }
+    .ttc.emp { background:var(--bg2); border:0.5px dashed var(--border); color:var(--hint); align-items:center; font-size:11px; }
+    .ttc.na  { background:var(--bg); border:0.5px solid var(--border); opacity:.3; }
+    .tsub { font-weight:600; font-size:12px; margin-bottom:3px; }
+    .ttr  { font-size:10px; line-height:1.35; opacity:.85; }
+    .s-en { background:#E6F1FB; border:0.5px solid #378ADD; color:#0C447C; }
+    .s-ma { background:#EAF3DE; border:0.5px solid #639922; color:#27500A; }
+    .s-sc { background:#EEEDFE; border:0.5px solid #7F77DD; color:#3C3489; }
+    .s-ss { background:#FAEEDA; border:0.5px solid #EF9F27; color:#633806; }
+    .s-hi { background:#FCEBEB; border:0.5px solid #E24B4A; color:#791F1F; }
+    .s-co { background:#E1F5EE; border:0.5px solid #1D9E75; color:#085041; }
+    .s-ai { background:#FBEAF0; border:0.5px solid #D4537E; color:#72243E; }
+    .s-df { background:var(--bg2); border:0.5px solid var(--border2); color:var(--muted); }
+    .info-bar { font-size:12px; color:var(--muted); margin-bottom:12px; }
+    .legend { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:14px; }
+    .leg { display:flex; align-items:center; gap:5px; font-size:11px; color:var(--muted); }
+    .leg-dot { width:10px; height:10px; border-radius:50%; flex-shrink:0; }
+    .footer { background:var(--navy); color:rgba(255,255,255,0.5); text-align:center; font-size:11px; padding:12px; }
+    /* Login overlay */
+    .login-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.5); display:flex; align-items:center; justify-content:center; z-index:100; }
+    .login-box { background:var(--card); border-radius:var(--rad-lg); padding:28px 30px; width:340px; box-shadow:0 8px 40px rgba(0,0,0,0.18); }
+    .login-box h2 { font-size:15px; font-weight:600; margin-bottom:6px; color:var(--text); }
+    .login-box p  { font-size:12px; color:var(--muted); margin-bottom:18px; }
+    .login-err { font-size:12px; color:var(--danger-tx); margin-top:8px; display:none; }
+    /* Admin swap modal */
+    .modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.5); display:flex; align-items:center; justify-content:center; z-index:200; }
+    .modal-box { background:var(--card); border-radius:var(--rad-lg); padding:24px 26px; width:460px; max-width:95vw; box-shadow:0 8px 40px rgba(0,0,0,0.18); }
+    .modal-box h3 { font-size:14px; font-weight:600; margin-bottom:14px; }
+    .modal-row { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:10px; }
+    .swap-cell { border:2px solid transparent; cursor:pointer; }
+    .swap-cell.selected { border-color:var(--navy); }
+    /* Slot swap highlight */
+    .ttc.swappable { cursor:pointer; outline:2px dashed #378ADD; outline-offset:2px; }
+    .ttc.swap-selected { outline:3px solid var(--navy); outline-offset:2px; background-color:rgba(28,53,87,0.08) !important; }
+    /* Sync indicator */
+    .sync { font-size:11px; color:var(--muted); display:flex; align-items:center; gap:5px; }
+    .sync-dot { width:7px; height:7px; border-radius:50%; background:#22c55e; flex-shrink:0; }
+    .sync-dot.off { background:#f59e0b; }
+    @media(max-width:600px){
+      body{padding:10px;}
+      .ttg{grid-template-columns:90px repeat(4,1fr);}
+      .tth,.ttsl{font-size:10px;padding:5px 6px;}
+      .tsub{font-size:11px;}
+      .ar,.rg-hd{grid-template-columns:60px 60px 1fr 70px 30px;gap:5px;}
+      .modal-row{grid-template-columns:1fr;}
     }
   </style>
 </head>
 <body>
 
-<div class="shell">
+<!-- LOGIN OVERLAY -->
+<div class="login-overlay" id="login-overlay">
+  <div class="login-box">
+    <h2>🏫 GD Goenka School Dakshineswar</h2>
+    <p>Enter your full name in capitals to continue.<br>Admin? Enter the admin password below.</p>
+    <label class="lbl" style="margin-top:10px;">Your Full Name (CAPS)</label>
+    <input type="text" id="login-name" placeholder="e.g. ANANYA ROY" oninput="this.value=this.value.toUpperCase()" style="margin-bottom:10px;">
+    <label class="lbl">Admin Password <span style="font-weight:400;text-transform:none;">(leave blank if teacher)</span></label>
+    <input type="password" id="login-pass" placeholder="Admin password">
+    <div class="login-err" id="login-err">Name cannot be empty.</div>
+    <div style="margin-top:14px;">
+      <button class="btn btn-p" style="width:100%;" onclick="doLogin()">Enter</button>
+    </div>
+  </div>
+</div>
 
+<!-- SWAP MODAL -->
+<div class="modal-overlay" id="swap-modal" style="display:none;">
+  <div class="modal-box">
+    <h3>⇄ Swap / Shift Slot</h3>
+    <div id="swap-status" style="font-size:12px;color:var(--muted);margin-bottom:12px;">Click a slot in the timetable to select it (first slot selected: none).</div>
+    <div id="swap-slot-a" style="margin-bottom:8px;"></div>
+    <div id="swap-slot-b" style="margin-bottom:14px;"></div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;">
+      <button class="btn btn-p" id="swap-confirm-btn" onclick="confirmSwap()" disabled>⇄ Confirm Swap</button>
+      <button class="btn btn-g" id="shift-confirm-btn" onclick="confirmShift()" disabled>→ Shift to Free Slot</button>
+      <button class="btn" onclick="cancelSwap()">Cancel</button>
+    </div>
+    <div id="swap-err" style="font-size:12px;color:var(--danger-tx);margin-top:8px;"></div>
+  </div>
+</div>
+
+<div class="shell">
   <!-- Header -->
   <div class="hdr">
     <div class="hdr-logo">🏫</div>
@@ -307,145 +149,175 @@
       <h1>G D Goenka School Dakshineswar &mdash; Timetable Generator</h1>
       <p>Online sessions &middot; 21 Apr (Tue) &ndash; 24 Apr (Fri) 2026</p>
     </div>
+    <div class="hdr-right">
+      <span class="who-badge" id="who-badge"></span>
+      <div class="sync" id="sync-ind"><div class="sync-dot off" id="sync-dot"></div><span id="sync-txt">Connecting…</span></div>
+      <button class="btn btn-sm" onclick="doLogout()" style="font-size:11px;">Logout</button>
+    </div>
   </div>
 
   <!-- Tabs -->
   <div class="tabs">
-    <button class="tab on" id="tb0" onclick="goTab(0)">&#9998; Enter Teacher Data</button>
-    <button class="tab"    id="tb1" onclick="goTab(1)">&#9776; Generate Timetable</button>
+    <button class="tab on" id="tb0" onclick="goTab(0)">✎ Enter Teacher Data</button>
+    <button class="tab"    id="tb1" onclick="goTab(1)">☰ Generate Timetable</button>
   </div>
 
   <!-- Body -->
   <div class="body">
 
-    <!-- ══ TAB 0 : DATA ENTRY ══ -->
+    <!-- TAB 0: DATA ENTRY -->
     <div id="tp0">
-
       <div class="card">
-        <div class="ct">Add a Teacher</div>
-
+        <div class="ct">Add / Update My Teaching Assignments</div>
         <div style="margin-bottom:14px;">
-          <label class="lbl">Teacher name (all caps)</label>
-          <input type="text" id="tname" placeholder="e.g. ANANYA ROY"
-                 style="max-width:320px;"
-                 oninput="this.value=this.value.toUpperCase()">
+          <label class="lbl">Teacher name (auto-filled from login)</label>
+          <input type="text" id="tname" readonly style="background:var(--bg2);max-width:320px;">
         </div>
-
         <div class="rg-hd">
-          <span>Class</span>
-          <span>Section</span>
-          <span>Subject</span>
-          <span>Sessions/wk</span>
-          <span></span>
+          <span>Class</span><span>Section</span><span>Subject</span><span>Sessions/wk</span><span></span>
         </div>
         <div id="arows"></div>
-
         <div style="display:flex;gap:8px;margin-top:10px;flex-wrap:wrap;">
           <button class="btn" onclick="addRow()">+ Add row</button>
-          <button class="btn btn-p" onclick="addTeacher()">Save teacher</button>
-          <button class="btn btn-d btn-sm" onclick="clearAll()" style="margin-left:auto;">🗑 Clear all saved data</button>
+          <button class="btn btn-p" onclick="saveMyData()">💾 Save my data</button>
         </div>
       </div>
 
-      <!-- Legend of what counts are fixed -->
       <div class="card" style="padding:12px 16px;">
         <div class="ct" style="margin-bottom:8px;">Fixed session requirements (21–24 Apr)</div>
-        <div style="font-size:12px; color:var(--muted); line-height:1.8;">
-          <b style="color:var(--text);">Class VI–VIII per section:</b>
-          English 3 &middot; Maths 3 &middot; Science 3 &middot; Social Science 3 &middot;
-          Hindi/Bengali 3 (simultaneous) &middot; Computer 1
-          <br>
-          <b style="color:var(--text);">Class IX–X per section:</b>
-          English 3 &middot; Maths 3 &middot; Science 3 &middot; Social Science 4 &middot;
-          Hindi/Bengali 3 (simultaneous) &middot; AI 1
-          <br>
-          <b style="color:var(--text);">Class III–V / XI–XII:</b>
-          Uses the sessions/week value entered by the teacher (capped to available slots).
+        <div style="font-size:12px;color:var(--muted);line-height:1.8;">
+          <b style="color:var(--text);">Class VI–VIII per section:</b> English 3 · Maths 3 · Science 3 · Social Science 3 · Hindi/Bengali 3 (simultaneous) · Computer 1<br>
+          <b style="color:var(--text);">Class IX–X per section:</b> English 3 · Maths 3 · Science 3 · Social Science 4 · Hindi/Bengali 3 (simultaneous) · AI 1<br>
+          <b style="color:var(--text);">Class III–V / XI–XII:</b> Uses the sessions/week value entered (capped to available slots).
         </div>
       </div>
 
       <div id="tlist">
-        <div class="empty">No teachers added yet. Fill in the form above and click "Save teacher".</div>
+        <div class="empty">Loading teacher data…</div>
       </div>
     </div>
 
-    <!-- ══ TAB 1 : TIMETABLE ══ -->
+    <!-- TAB 1: TIMETABLE -->
     <div id="tp1" style="display:none;">
-
       <div style="display:flex;gap:10px;align-items:center;margin-bottom:16px;flex-wrap:wrap;">
-        <button class="btn btn-g" onclick="runSched()">&#9881; Generate Timetable</button>
-        <button class="btn" onclick="printTT()" id="btn-print" style="display:none;">&#128438; Print / Export PDF</button>
-        <button class="btn btn-p" onclick="dlTeacherWise()" id="btn-dl-t" style="display:none;">&#11015; Download Teacher Timetables</button>
-        <button class="btn btn-p" onclick="dlSectionWise()" id="btn-dl-s" style="display:none;">&#11015; Download Section Timetables</button>
+        <button class="btn btn-g" onclick="runSched()">⚙ Generate Timetable</button>
+        <button class="btn" onclick="printTT()" id="btn-print" style="display:none;">🖨 Print / Export PDF</button>
+        <button class="btn btn-p" onclick="dlTeacherWise()" id="btn-dl-t" style="display:none;">⬇ Teacher Timetables</button>
+        <button class="btn btn-p" onclick="dlSectionWise()" id="btn-dl-s" style="display:none;">⬇ Section Timetables</button>
+        <button class="btn btn-o" onclick="openSwapModal()" id="btn-swap" style="display:none;">⇄ Swap / Shift Slot</button>
         <span id="gstat" style="font-size:12px;color:var(--muted);"></span>
       </div>
-
       <div id="ttout">
-        <div class="empty">
-          Add teacher data in the first tab, then click "Generate Timetable".
-        </div>
+        <div class="empty">Add teacher data in the first tab, then click "Generate Timetable".</div>
       </div>
     </div>
 
-  </div><!-- /body -->
-
-  <div class="footer">
-    G D Goenka School Dakshineswar &mdash; Timetable Generator &copy; 2026
   </div>
 
-</div><!-- /shell -->
+  <div class="footer">G D Goenka School Dakshineswar &mdash; Timetable Generator &copy; 2026</div>
+</div>
+
+<!-- Firebase SDKs -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 
 <script>
-// ═══════════════════════════════════════════
-//  STATE
-// ═══════════════════════════════════════════
-var teachers = [];
-var ttData   = null;
-var curView  = 'sec';
-var allTrList = [];   // full sorted teacher list for searchable selector
+// ═══════════════════════════════════════
+//  FIREBASE INIT
+// ═══════════════════════════════════════
+var firebaseConfig = {
+  apiKey: "AIzaSyAKa-onIqvDklIXHzyn-V0CRxu8MnI_TjY",
+  authDomain: "gdgd-online-timetable.firebaseapp.com",
+  projectId: "gdgd-online-timetable",
+  storageBucket: "gdgd-online-timetable.firebasestorage.app",
+  messagingSenderId: "5592808422",
+  appId: "1:5592808422:web:e5f0a3ee3c00b4fac47427"
+};
+firebase.initializeApp(firebaseConfig);
+var db = firebase.firestore();
+var teachersCol = db.collection('teachers');
 
-// ── Persistence helpers ──
-var STORE_KEY = 'gdg_tt_teachers_v1';
-function saveTeachers() {
-  try { localStorage.setItem(STORE_KEY, JSON.stringify(teachers)); } catch(e) {}
-}
-function loadTeachers() {
-  try {
-    var raw = localStorage.getItem(STORE_KEY);
-    if (raw) { teachers = JSON.parse(raw); renderList(); }
-  } catch(e) {}
-}
-function clearAll() {
-  if (!confirm('Delete ALL saved teacher data? This cannot be undone.')) return;
-  teachers = [];
-  try { localStorage.removeItem(STORE_KEY); } catch(e) {}
-  renderList();
-}
-
-
-// ═══════════════════════════════════════════
+// ═══════════════════════════════════════
 //  CONSTANTS
-// ═══════════════════════════════════════════
-var DAYS  = ['Tue 21 Apr', 'Wed 22 Apr', 'Thu 23 Apr', 'Fri 24 Apr'];
-var SLOTS = ['9:00–9:45 AM', '10:00–10:45 AM', '11:00–11:45 AM', '12:00–12:45 PM'];
+// ═══════════════════════════════════════
+var ADMIN_PASSWORD = 'GDGADMIN2026';   // ← Change this to your preferred admin password
+var DAYS  = ['Tue 21 Apr','Wed 22 Apr','Thu 23 Apr','Fri 24 Apr'];
+var SLOTS = ['9:00–9:45 AM','10:00–10:45 AM','11:00–11:45 AM','12:00–12:45 PM'];
 
-// ═══════════════════════════════════════════
-//  TAB SWITCHING
-// ═══════════════════════════════════════════
-function goTab(i) {
-  document.getElementById('tp0').style.display = (i === 0) ? '' : 'none';
-  document.getElementById('tp1').style.display = (i === 1) ? '' : 'none';
-  document.getElementById('tb0').className = 'tab' + (i === 0 ? ' on' : '');
-  document.getElementById('tb1').className = 'tab' + (i === 1 ? ' on' : '');
+// ═══════════════════════════════════════
+//  STATE
+// ═══════════════════════════════════════
+var currentUser  = null;   // { name, isAdmin }
+var teachers     = [];     // loaded from Firestore
+var ttData       = null;
+var curView      = 'sec';
+var allTrList    = [];
+var allCsList    = [];
+var swapSlots    = [];     // [{d,s,cs,cell}, ...]
+var unsubscribe  = null;
+
+// ═══════════════════════════════════════
+//  LOGIN
+// ═══════════════════════════════════════
+function doLogin() {
+  var name = document.getElementById('login-name').value.trim().toUpperCase();
+  var pass = document.getElementById('login-pass').value.trim();
+  var err  = document.getElementById('login-err');
+  if (!name) { err.textContent = 'Please enter your name.'; err.style.display = 'block'; return; }
+  err.style.display = 'none';
+  var isAdmin = (pass === ADMIN_PASSWORD);
+  currentUser = { name: name, isAdmin: isAdmin };
+  document.getElementById('login-overlay').style.display = 'none';
+  document.getElementById('who-badge').textContent = isAdmin ? '🔑 ADMIN: ' + name : '👤 ' + name;
+  document.getElementById('tname').value = name;
+  startFirestoreListener();
+  addRow();
+  // Pre-fill form with own data if exists
+  setTimeout(prefillMyData, 1200);
 }
 
-// ═══════════════════════════════════════════
+function doLogout() {
+  if (unsubscribe) unsubscribe();
+  currentUser = null; teachers = []; ttData = null;
+  document.getElementById('login-overlay').style.display = 'flex';
+  document.getElementById('login-name').value = '';
+  document.getElementById('login-pass').value = '';
+  document.getElementById('tlist').innerHTML = '<div class="empty">Loading teacher data…</div>';
+  document.getElementById('ttout').innerHTML = '<div class="empty">Add teacher data in the first tab, then click "Generate Timetable".</div>';
+  document.getElementById('btn-print').style.display = 'none';
+  document.getElementById('btn-dl-t').style.display  = 'none';
+  document.getElementById('btn-dl-s').style.display  = 'none';
+  document.getElementById('btn-swap').style.display  = 'none';
+  setSyncStatus(false);
+}
+
+// ═══════════════════════════════════════
+//  FIRESTORE REAL-TIME LISTENER
+// ═══════════════════════════════════════
+function startFirestoreListener() {
+  setSyncStatus(false);
+  unsubscribe = teachersCol.onSnapshot(function(snap) {
+    teachers = [];
+    snap.forEach(function(doc) { teachers.push(Object.assign({ _id: doc.id }, doc.data())); });
+    teachers.sort(function(a,b){ return a.name.localeCompare(b.name); });
+    renderList();
+    setSyncStatus(true);
+  }, function(err) {
+    setSyncStatus(false);
+    console.error('Firestore error:', err);
+  });
+}
+
+function setSyncStatus(ok) {
+  document.getElementById('sync-dot').className = 'sync-dot' + (ok ? '' : ' off');
+  document.getElementById('sync-txt').textContent = ok ? 'Live' : 'Reconnecting…';
+}
+
+// ═══════════════════════════════════════
 //  FORM HELPERS
-// ═══════════════════════════════════════════
+// ═══════════════════════════════════════
 function addRow() {
-  if (document.querySelectorAll('.ar').length >= 18) {
-    alert('Maximum 18 assignments per teacher.'); return;
-  }
+  if (document.querySelectorAll('.ar').length >= 18) { alert('Maximum 18 assignments per teacher.'); return; }
   var d = document.createElement('div');
   d.className = 'ar';
   d.innerHTML =
@@ -453,15 +325,29 @@ function addRow() {
     '<input type="text"   class="si" placeholder="e.g. A" maxlength="3" oninput="this.value=this.value.toUpperCase()">' +
     '<input type="text"   class="bi" placeholder="e.g. English">' +
     '<input type="number" class="ni" placeholder="e.g. 4" min="1" max="20">' +
-    '<button class="btn btn-d btn-sm" onclick="this.closest(\'.ar\').remove()" ' +
-    'style="padding:4px 8px;font-size:15px;border-radius:var(--rad);">&#215;</button>';
+    '<button class="btn btn-d btn-sm" onclick="this.closest(\'.ar\').remove()" style="padding:4px 8px;font-size:15px;">✕</button>';
   document.getElementById('arows').appendChild(d);
 }
 
-function addTeacher() {
-  var name = document.getElementById('tname').value.trim().toUpperCase();
-  if (!name) { alert('Please enter the teacher\'s name.'); return; }
+function prefillMyData() {
+  if (!currentUser) return;
+  var me = teachers.find(function(t){ return t.name === currentUser.name; });
+  if (!me || !me.assignments || !me.assignments.length) return;
+  document.getElementById('arows').innerHTML = '';
+  me.assignments.forEach(function(a) {
+    addRow();
+    var rows = document.querySelectorAll('.ar');
+    var r = rows[rows.length - 1];
+    r.querySelector('.ci').value = a.classNum;
+    r.querySelector('.si').value = a.section;
+    r.querySelector('.bi').value = a.subject;
+    r.querySelector('.ni').value = a.count;
+  });
+}
 
+function saveMyData() {
+  if (!currentUser) return;
+  var name = currentUser.name;
   var rows = document.querySelectorAll('.ar'), ass = [];
   rows.forEach(function(r) {
     var c = r.querySelector('.ci').value.trim();
@@ -470,496 +356,508 @@ function addTeacher() {
     var n = parseInt(r.querySelector('.ni').value);
     if (c && s && b && n) ass.push({ classNum: parseInt(c), section: s, subject: b, count: n });
   });
-
   if (!ass.length) { alert('Please complete at least one assignment row.'); return; }
 
-  var ei = teachers.findIndex(function(t) { return t.name === name; });
-  if (ei >= 0) {
-    if (confirm(name + ' already exists. Merge new assignments?')) {
-      teachers[ei].assignments = teachers[ei].assignments.concat(ass);
-    } else return;
-  } else {
-    teachers.push({ name: name, assignments: ass });
+  // Find existing doc for this teacher
+  var existing = teachers.find(function(t){ return t.name === name; });
+  var promise = existing
+    ? teachersCol.doc(existing._id).set({ name: name, assignments: ass })
+    : teachersCol.add({ name: name, assignments: ass });
+
+  promise.then(function() {
+    document.getElementById('arows').innerHTML = '';
+    addRow();
+    alert('✓ Data saved successfully!');
+  }).catch(function(e) { alert('Error saving: ' + e.message); });
+}
+
+function delTeacher(id, tname) {
+  if (!currentUser) return;
+  if (!currentUser.isAdmin && tname !== currentUser.name) {
+    alert('You can only delete your own data.'); return;
   }
-
-  document.getElementById('tname').value = '';
-  document.getElementById('arows').innerHTML = '';
-  addRow();
-  renderList();
-  saveTeachers();
+  if (!confirm('Remove ' + tname + '?')) return;
+  teachersCol.doc(id).delete().catch(function(e){ alert('Error: ' + e.message); });
 }
 
-function delTeacher(i) {
-  if (!confirm('Remove ' + teachers[i].name + '?')) return;
-  teachers.splice(i, 1);
-  renderList();
-  saveTeachers();
-}
-
+// ═══════════════════════════════════════
+//  RENDER TEACHER LIST
+// ═══════════════════════════════════════
 function renderList() {
   var el = document.getElementById('tlist');
   if (!teachers.length) {
-    el.innerHTML = '<div class="empty">No teachers added yet. Fill in the form above and click "Save teacher".</div>';
-    return;
+    el.innerHTML = '<div class="empty">No teachers added yet.</div>'; return;
   }
-  el.innerHTML = teachers.map(function(t, i) {
+  el.innerHTML = teachers.map(function(t) {
+    var canDel = currentUser && (currentUser.isAdmin || t.name === currentUser.name);
     return '<div class="tc">' +
       '<div style="flex:1">' +
-        '<div class="tn">' + esc(t.name) + '</div>' +
+        '<div class="tn">' + esc(t.name) + (currentUser && currentUser.isAdmin ? ' <span style="font-size:10px;color:var(--muted);font-weight:400;">(admin view)</span>' : '') + '</div>' +
         '<div class="tags">' +
-          t.assignments.map(function(a) {
-            return '<span class="tag">Class ' + a.classNum + a.section +
-                   ' &middot; ' + esc(a.subject) + ' (' + a.count + '/wk)</span>';
+          (t.assignments || []).map(function(a){
+            return '<span class="tag">Class ' + a.classNum + a.section + ' · ' + esc(a.subject) + ' (' + a.count + '/wk)</span>';
           }).join('') +
         '</div>' +
       '</div>' +
-      '<button class="btn btn-d btn-sm" onclick="delTeacher(' + i + ')" ' +
-      'style="margin-left:12px;flex-shrink:0;">Remove</button>' +
+      (canDel ? '<button class="btn btn-d btn-sm" onclick="delTeacher(\'' + t._id + '\',\'' + esc(t.name) + '\')" style="margin-left:12px;flex-shrink:0;">Remove</button>' : '') +
       '</div>';
   }).join('');
 }
 
-// ═══════════════════════════════════════════
+// ═══════════════════════════════════════
 //  ALGORITHM
-// ═══════════════════════════════════════════
+// ═══════════════════════════════════════
 function normSub(s) {
   var l = s.trim().toLowerCase();
-  if (['maths','mathematics','math'].indexOf(l) >= 0)                       return 'Maths';
-  if (l === 'english')                                                       return 'English';
-  if (l === 'science')                                                       return 'Science';
-  if (['social science','social studies','sst','ss','history','geography',
-       'civics','economics'].indexOf(l) >= 0)                               return 'Social Science';
-  if (l === 'hindi')                                                         return 'Hindi';
-  if (l === 'bengali')                                                       return 'Bengali';
-  if (['computer','computer science','cs','it','information technology',
-       'informatics practices','ip'].indexOf(l) >= 0)                       return 'Computer';
-  if (['ai','artificial intelligence','a.i.'].indexOf(l) >= 0)              return 'AI';
+  if (['maths','mathematics','math'].indexOf(l)>=0) return 'Maths';
+  if (l==='english') return 'English';
+  if (l==='science') return 'Science';
+  if (['social science','social studies','sst','ss','history','geography','civics','economics'].indexOf(l)>=0) return 'Social Science';
+  if (l==='hindi') return 'Hindi';
+  if (l==='bengali') return 'Bengali';
+  if (['computer','computer science','cs','it','information technology','informatics practices','ip'].indexOf(l)>=0) return 'Computer';
+  if (['ai','artificial intelligence','a.i.'].indexOf(l)>=0) return 'AI';
   return s.trim();
 }
-
 function reqSess(cls, sub) {
-  var n = parseInt(cls), s = normSub(sub);
-  if (n >= 6 && n <= 8) {
-    var m = { 'English':3,'Maths':3,'Science':3,'Social Science':3,
-              'Hindi':3,'Bengali':3,'Computer':1 };
-    return (m[s] != null) ? m[s] : null;
+  var n=parseInt(cls), s=normSub(sub);
+  if (n>=6&&n<=8){ var m={'English':3,'Maths':3,'Science':3,'Social Science':3,'Hindi':3,'Bengali':3,'Computer':1}; return m[s]!=null?m[s]:null; }
+  if (n>=9&&n<=10){ var m2={'English':3,'Maths':3,'Science':3,'Social Science':4,'Hindi':3,'Bengali':3,'AI':1}; return m2[s]!=null?m2[s]:null; }
+  return null;
+}
+function maxSlot(cls){ return parseInt(cls)<=5?2:3; }
+
+function runSched() {
+  if (!teachers.length){ alert('Please add at least one teacher first.'); return; }
+  document.getElementById('gstat').textContent='Generating…';
+  var allA=[];
+  teachers.forEach(function(t){
+    (t.assignments||[]).forEach(function(a){
+      var sub=normSub(a.subject), req=reqSess(a.classNum,sub);
+      var cnt=(req!=null)?req:Math.min(a.count,(maxSlot(a.classNum)+1)*4);
+      allA.push({tn:t.name,cls:parseInt(a.classNum),sec:a.section,sub:sub,cnt:cnt,cs:a.classNum+'-'+a.section});
+    });
+  });
+  var tt=[],tBusy=[],sBusy=[];
+  for(var d=0;d<4;d++){ tt[d]=[]; tBusy[d]=[]; sBusy[d]=[];
+    for(var s=0;s<4;s++){ tt[d][s]={}; tBusy[d][s]={}; sBusy[d][s]={}; }
   }
-  if (n >= 9 && n <= 10) {
-    var m2 = { 'English':3,'Maths':3,'Science':3,'Social Science':4,
-               'Hindi':3,'Bengali':3,'AI':1 };
-    return (m2[s] != null) ? m2[s] : null;
+  function canPlace(d,s,cs,cls){
+    if(s>maxSlot(cls)) return false;
+    if(tt[d][s][cs]) return false;
+    if(sBusy[d][s][cs]) return false;
+    for(var i=4;i<arguments.length;i++){ if(tBusy[d][s][arguments[i]]) return false; }
+    return true;
+  }
+  function doPlace(d,s,cs,sub,tList){
+    tt[d][s][cs]={sub:sub,tl:tList};
+    sBusy[d][s][cs]=1;
+    tList.forEach(function(tn){ tBusy[d][s][tn]=1; });
+  }
+  var hindiList=allA.filter(function(a){ return a.sub==='Hindi'; });
+  var bengMap={};
+  allA.filter(function(a){ return a.sub==='Bengali'; }).forEach(function(a){ bengMap[a.cs]=a; });
+  var others=allA.filter(function(a){ return a.sub!=='Hindi'&&a.sub!=='Bengali'; });
+  var paired={};
+  hindiList.forEach(function(ha){
+    var ba=bengMap[ha.cs],placed=0;
+    for(var d=0;d<4&&placed<ha.cnt;d++){
+      for(var s=0;s<=maxSlot(ha.cls)&&placed<ha.cnt;s++){
+        var bOk=ba?!tBusy[d][s][ba.tn]:true;
+        if(canPlace(d,s,ha.cs,ha.cls,ha.tn)&&bOk){
+          var subLabel=ba?'Hindi / Bengali':'Hindi';
+          var tList=[ha.tn]; if(ba) tList.push(ba.tn);
+          doPlace(d,s,ha.cs,subLabel,tList); placed++;
+        }
+      }
+    }
+    paired[ha.cs]=1;
+  });
+  Object.keys(bengMap).forEach(function(cs){
+    if(paired[cs]) return;
+    var ba=bengMap[cs],placed=0;
+    for(var d=0;d<4&&placed<ba.cnt;d++){
+      for(var s=0;s<=maxSlot(ba.cls)&&placed<ba.cnt;s++){
+        if(canPlace(d,s,cs,ba.cls,ba.tn)){ doPlace(d,s,cs,'Bengali',[ba.tn]); placed++; }
+      }
+    }
+  });
+  others.sort(function(a,b){ return b.cnt-a.cnt; });
+  others.forEach(function(task){
+    var placed=0;
+    for(var d=0;d<4&&placed<task.cnt;d++){
+      for(var s=0;s<=maxSlot(task.cls)&&placed<task.cnt;s++){
+        if(canPlace(d,s,task.cs,task.cls,task.tn)){ doPlace(d,s,task.cs,task.sub,[task.tn]); placed++; }
+      }
+    }
+  });
+  ttData=tt;
+  var csSet={};
+  teachers.forEach(function(t){ (t.assignments||[]).forEach(function(a){ csSet[a.classNum+'-'+a.section]=1; }); });
+  allCsList=Object.keys(csSet).sort(function(a,b){
+    var ap=a.split('-'),bp=b.split('-');
+    return parseInt(ap[0])-parseInt(bp[0])||ap[1].localeCompare(bp[1]);
+  });
+  allTrList=teachers.map(function(t){ return t.name; }).sort();
+  renderTT(allCsList,allTrList);
+  document.getElementById('btn-print').style.display='';
+  document.getElementById('btn-dl-t').style.display='';
+  document.getElementById('btn-dl-s').style.display='';
+  if(currentUser&&currentUser.isAdmin) document.getElementById('btn-swap').style.display='';
+  document.getElementById('gstat').textContent='✓ Timetable generated for '+allCsList.length+' section(s) across '+allTrList.length+' teacher(s).';
+}
+
+// ═══════════════════════════════════════
+//  RENDERING
+// ═══════════════════════════════════════
+function subjCls(sub){
+  if(!sub) return 's-df';
+  var l=sub.toLowerCase();
+  if(l.indexOf('english')>=0) return 's-en';
+  if(l.indexOf('math')>=0) return 's-ma';
+  if(l.indexOf('science')>=0&&l.indexOf('social')<0) return 's-sc';
+  if(l.indexOf('social')>=0) return 's-ss';
+  if(l.indexOf('hindi')>=0||l.indexOf('bengali')>=0) return 's-hi';
+  if(l.indexOf('computer')>=0) return 's-co';
+  if(l.indexOf('ai')>=0||l.indexOf('artif')>=0) return 's-ai';
+  return 's-df';
+}
+function fmtCS(cs){ var p=cs.split('-'); return 'Class '+p[0]+'–'+p[1]; }
+function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+var LEGEND_ITEMS=[
+  {cls:'s-en',label:'English'},{cls:'s-ma',label:'Maths'},{cls:'s-sc',label:'Science'},
+  {cls:'s-ss',label:'Social Science'},{cls:'s-hi',label:'Hindi / Bengali'},
+  {cls:'s-co',label:'Computer'},{cls:'s-ai',label:'AI'},{cls:'s-df',label:'Other'}
+];
+var LEGEND_COLORS={'s-en':'#378ADD','s-ma':'#639922','s-sc':'#7F77DD','s-ss':'#EF9F27','s-hi':'#E24B4A','s-co':'#1D9E75','s-ai':'#D4537E','s-df':'#8fa0b4'};
+
+function renderTT(csList,trList){
+  var legendHTML=LEGEND_ITEMS.map(function(item){
+    return '<span class="leg"><span class="leg-dot" style="background:'+LEGEND_COLORS[item.cls]+'"></span>'+item.label+'</span>';
+  }).join('');
+  document.getElementById('ttout').innerHTML=
+    '<div class="vt">'+
+      '<button class="vb on" id="vb-s" onclick="setV(\'sec\')">By Section</button>'+
+      '<button class="vb"    id="vb-t" onclick="setV(\'tr\')">By Teacher</button>'+
+    '</div>'+
+    '<div class="legend">'+legendHTML+'</div>'+
+    '<div id="vw-sec">'+
+      '<div class="sbs" id="cs-sel">'+
+        csList.map(function(cs){ return '<button class="sb" data-cs="'+cs+'" onclick="pickCS(\''+cs+'\')">'+fmtCS(cs)+'</button>'; }).join('')+
+      '</div>'+
+      '<div id="sg-cont"><div class="empty" style="padding:20px 0;">Select a class-section above.</div></div>'+
+    '</div>'+
+    '<div id="vw-tr" style="display:none;">'+
+      '<div style="margin-bottom:12px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;">'+
+        '<input id="tr-search" type="text" placeholder="Search teacher…" style="max-width:260px;" oninput="filterTR(this.value)">'+
+        '<span id="tr-count" style="font-size:11px;color:var(--muted);"></span>'+
+      '</div>'+
+      '<div class="sbs" id="tr-sel"></div>'+
+      '<div id="tg-cont"><div class="empty" style="padding:20px 0;">Select a teacher above.</div></div>'+
+    '</div>';
+}
+
+function setV(v){
+  curView=v;
+  document.getElementById('vw-sec').style.display=(v==='sec')?'':'none';
+  document.getElementById('vw-tr').style.display=(v==='tr')?'':'none';
+  document.getElementById('vb-s').className='vb'+(v==='sec'?' on':'');
+  document.getElementById('vb-t').className='vb'+(v==='tr'?' on':'');
+  if(v==='tr') populateTrSel(document.getElementById('tr-search')?document.getElementById('tr-search').value:'');
+}
+
+function populateTrSel(filter){
+  var sel=document.getElementById('tr-sel'); if(!sel) return;
+  var q=filter.trim().toUpperCase();
+  var filtered=allTrList.filter(function(t){ return !q||t.indexOf(q)>=0; });
+  document.getElementById('tr-count').textContent=filtered.length+' of '+allTrList.length+' teacher(s)';
+  var show=filtered.slice(0,60);
+  sel.innerHTML=show.map(function(t){
+    return '<button class="sb" data-tr="'+esc(t)+'" onclick="pickTR(\''+esc(t)+'\')">'+esc(t)+'</button>';
+  }).join('');
+  if(filtered.length>60) sel.innerHTML+='<span style="font-size:11px;color:var(--muted);align-self:center;">… '+(filtered.length-60)+' more — refine search</span>';
+}
+function filterTR(val){ populateTrSel(val); }
+
+function buildGrid(getCellHTML,msOverride){
+  var h='<div class="ttg">'+
+    '<div class="tth" style="text-align:left;font-size:11px;">Slot</div>'+
+    DAYS.map(function(d){ return '<div class="tth">'+d+'</div>'; }).join('');
+  for(var s=0;s<4;s++){
+    h+='<div class="ttsl">'+SLOTS[s]+'</div>';
+    for(var d=0;d<4;d++){
+      var ms=(msOverride!=null)?msOverride:3;
+      h+=(s>ms)?'<div class="ttc na"></div>':getCellHTML(d,s);
+    }
+  }
+  return h+'</div>';
+}
+
+function pickCS(cs){
+  document.querySelectorAll('#cs-sel .sb').forEach(function(b){ b.className='sb'+(b.dataset.cs===cs?' on':''); });
+  var cls=parseInt(cs.split('-')[0]), ms=maxSlot(cls);
+  var counts={};
+  for(var d=0;d<4;d++) for(var s=0;s<=ms;s++){ var c=ttData[d][s][cs]; if(c) counts[c.sub]=(counts[c.sub]||0)+1; }
+  var summaryParts=Object.keys(counts).map(function(k){ return '<b>'+esc(k)+'</b> '+counts[k]; });
+  var summary='<div class="info-bar"><span style="color:var(--text)">'+fmtCS(cs)+'</span> &nbsp;|&nbsp; Sessions placed: '+(summaryParts.length?summaryParts.join(', '):'none')+'</div>';
+  var grid=buildGrid(function(d,s){
+    var c=ttData[d][s][cs];
+    if(!c) return '<div class="ttc emp">—</div>';
+    var swapAttr=currentUser&&currentUser.isAdmin?' onclick="selectSwapSlot('+d+','+s+',\''+cs+'\')" title="Click to select for swap"':'';
+    var swapCls=currentUser&&currentUser.isAdmin?' swappable':'';
+    return '<div class="ttc '+subjCls(c.sub)+swapCls+'"'+swapAttr+'>'+
+      '<div class="tsub">'+esc(c.sub)+'</div>'+
+      '<div class="ttr">'+c.tl.map(esc).join('<br>')+'</div>'+
+      '</div>';
+  },ms);
+  document.getElementById('sg-cont').innerHTML=summary+grid;
+}
+
+function pickTR(name){
+  document.querySelectorAll('#tr-sel .sb').forEach(function(b){ b.className='sb'+(b.dataset.tr===name?' on':''); });
+  var cnt=0;
+  var grid=buildGrid(function(d,s){
+    var found=[];
+    Object.keys(ttData[d][s]).forEach(function(cs){
+      var c=ttData[d][s][cs];
+      if(c&&c.tl.indexOf(name)>=0) found.push({cs:cs,sub:c.sub});
+    });
+    if(!found.length) return '<div class="ttc emp" style="font-size:10px;">Free</div>';
+    cnt++;
+    var f=found[0];
+    var clash=found.length>1?'<div class="ttr" style="color:#b91c1c;">⚠ clash +'+(found.length-1)+'</div>':'';
+    var swapAttr=currentUser&&currentUser.isAdmin?' onclick="selectSwapSlot('+d+','+s+',\''+f.cs+'\')" title="Click to select for swap"':'';
+    var swapCls=currentUser&&currentUser.isAdmin?' swappable':'';
+    return '<div class="ttc '+subjCls(f.sub)+swapCls+'"'+swapAttr+'>'+
+      '<div class="tsub">'+esc(f.sub)+'</div>'+
+      '<div class="ttr">'+esc(fmtCS(f.cs))+'</div>'+
+      clash+'</div>';
+  },null);
+  var info='<div class="info-bar"><span style="color:var(--text)">'+esc(name)+'</span> &nbsp;|&nbsp; '+cnt+' session(s) over 4 days</div>';
+  document.getElementById('tg-cont').innerHTML=info+grid;
+}
+
+// ═══════════════════════════════════════
+//  SWAP / SHIFT (Admin only)
+// ═══════════════════════════════════════
+function openSwapModal(){
+  if(!currentUser||!currentUser.isAdmin){ alert('Admin only.'); return; }
+  swapSlots=[];
+  updateSwapModal();
+  document.getElementById('swap-modal').style.display='flex';
+  document.getElementById('swap-err').textContent='';
+}
+function cancelSwap(){
+  swapSlots=[];
+  document.getElementById('swap-modal').style.display='none';
+  // Re-render to remove highlights
+  if(curView==='sec'){
+    var active=document.querySelector('#cs-sel .sb.on');
+    if(active) pickCS(active.dataset.cs);
+  } else {
+    var activeT=document.querySelector('#tr-sel .sb.on');
+    if(activeT) pickTR(activeT.dataset.tr);
+  }
+}
+
+function selectSwapSlot(d,s,cs){
+  if(!ttData[d][s][cs]){ return; }
+  // Toggle off if already selected
+  for(var i=0;i<swapSlots.length;i++){
+    if(swapSlots[i].d===d&&swapSlots[i].s===s&&swapSlots[i].cs===cs){
+      swapSlots.splice(i,1);
+      updateSwapModal();
+      highlightSwapCells();
+      return;
+    }
+  }
+  if(swapSlots.length>=2){ swapSlots.shift(); }
+  swapSlots.push({d:d,s:s,cs:cs});
+  updateSwapModal();
+  highlightSwapCells();
+  // Auto-open modal
+  document.getElementById('swap-modal').style.display='flex';
+  document.getElementById('swap-err').textContent='';
+}
+
+function highlightSwapCells(){
+  document.querySelectorAll('.ttc.swap-selected').forEach(function(el){ el.classList.remove('swap-selected'); });
+  swapSlots.forEach(function(sl){
+    // Find matching cell by data attribute — we'll rely on re-render instead
+  });
+}
+
+function slotDesc(sl){
+  if(!sl) return '<em style="color:var(--muted)">None selected</em>';
+  var c=ttData[sl.d][sl.s][sl.cs];
+  if(!c) return '<em style="color:var(--muted)">Empty slot</em>';
+  return '<b>'+esc(c.sub)+'</b> · '+esc(fmtCS(sl.cs))+' · '+DAYS[sl.d]+' · '+SLOTS[sl.s]+
+    ' &nbsp;(Teacher: '+c.tl.map(esc).join(', ')+')';
+}
+
+function updateSwapModal(){
+  document.getElementById('swap-slot-a').innerHTML='<div style="font-size:12px;margin-bottom:4px;color:var(--muted);">Slot A:</div><div style="font-size:13px;padding:8px 10px;background:var(--bg2);border-radius:var(--rad);">'+slotDesc(swapSlots[0]||null)+'</div>';
+  document.getElementById('swap-slot-b').innerHTML='<div style="font-size:12px;margin-bottom:4px;color:var(--muted);">Slot B:</div><div style="font-size:13px;padding:8px 10px;background:var(--bg2);border-radius:var(--rad);">'+slotDesc(swapSlots[1]||null)+'</div>';
+  document.getElementById('swap-status').textContent= swapSlots.length===0?'Click any coloured slot in the timetable to select it.':
+    swapSlots.length===1?'Slot A selected. Now click another slot to select Slot B.':
+    'Both slots selected. Choose Swap or Shift below.';
+  var twoFilled=swapSlots.length===2&&ttData[swapSlots[0].d][swapSlots[0].s][swapSlots[0].cs]&&ttData[swapSlots[1].d][swapSlots[1].s][swapSlots[1].cs];
+  var oneFilled=swapSlots.length===2&&ttData[swapSlots[0].d][swapSlots[0].s][swapSlots[0].cs];
+  document.getElementById('swap-confirm-btn').disabled=!twoFilled;
+  document.getElementById('shift-confirm-btn').disabled=swapSlots.length<1;
+}
+
+function checkClash(d,s,cs,tList,skipCS){
+  // Check if placing tList at d,s,cs causes a teacher clash (ignoring current occupant at skipCS)
+  for(var ocs in ttData[d][s]){
+    if(ocs===cs||ocs===skipCS) continue;
+    var c=ttData[d][s][ocs];
+    if(!c) continue;
+    for(var i=0;i<tList.length;i++){
+      if(c.tl.indexOf(tList[i])>=0) return c.tl[i]+' already teaching '+ocs+' at this slot';
+    }
   }
   return null;
 }
 
-function maxSlot(cls) { return parseInt(cls) <= 5 ? 2 : 3; }
+function confirmSwap(){
+  if(swapSlots.length<2) return;
+  var A=swapSlots[0], B=swapSlots[1];
+  var cA=ttData[A.d][A.s][A.cs], cB=ttData[B.d][B.s][B.cs];
+  if(!cA||!cB){ document.getElementById('swap-err').textContent='Both slots must be occupied to swap.'; return; }
 
-function runSched() {
-  if (!teachers.length) { alert('Please add at least one teacher first.'); return; }
-  document.getElementById('gstat').textContent = 'Generating…';
-
-  // Build flat assignment list
-  var allA = [];
-  teachers.forEach(function(t) {
-    t.assignments.forEach(function(a) {
-      var sub = normSub(a.subject);
-      var req = reqSess(a.classNum, sub);
-      var cnt = (req != null) ? req : Math.min(a.count, (maxSlot(a.classNum) + 1) * 4);
-      allA.push({ tn: t.name, cls: parseInt(a.classNum), sec: a.section,
-                  sub: sub, cnt: cnt, cs: a.classNum + '-' + a.section });
-    });
-  });
-
-  // Initialise timetable and busy maps
-  var tt    = [];
-  var tBusy = [];  // teacher busy
-  var sBusy = [];  // section busy
-  for (var d = 0; d < 4; d++) {
-    tt[d] = []; tBusy[d] = []; sBusy[d] = [];
-    for (var s = 0; s < 4; s++) { tt[d][s] = {}; tBusy[d][s] = {}; sBusy[d][s] = {}; }
+  // Check clashes: place A's content at B's slot (ignoring B's current content) and vice versa
+  var errAB=checkClash(B.d,B.s,B.cs,cA.tl,A.cs);
+  var errBA=checkClash(A.d,A.s,A.cs,cB.tl,B.cs);
+  if(errAB||errBA){
+    document.getElementById('swap-err').textContent='Clash detected: '+(errAB||errBA); return;
+  }
+  // Also check section conflict
+  if(A.cs!==B.cs){
+    if(ttData[B.d][B.s][A.cs]&&ttData[B.d][B.s][A.cs]!==cB){ document.getElementById('swap-err').textContent='Section '+A.cs+' already has a class at '+DAYS[B.d]+' '+SLOTS[B.s]; return; }
+    if(ttData[A.d][A.s][B.cs]&&ttData[A.d][A.s][B.cs]!==cA){ document.getElementById('swap-err').textContent='Section '+B.cs+' already has a class at '+DAYS[A.d]+' '+SLOTS[A.s]; return; }
   }
 
-  function canPlace(d, s, cs, cls) {
-    if (s > maxSlot(cls)) return false;
-    if (tt[d][s][cs])     return false;
-    if (sBusy[d][s][cs])  return false;
-    for (var i = 4; i < arguments.length; i++) {
-      if (tBusy[d][s][arguments[i]]) return false;
-    }
-    return true;
+  // Do the swap
+  ttData[A.d][A.s][A.cs]=cB;
+  ttData[B.d][B.s][B.cs]=cA;
+  if(A.cs!==B.cs){
+    ttData[B.d][B.s][A.cs]=cA;
+    ttData[A.d][A.s][B.cs]=cB;
+    delete ttData[A.d][A.s][A.cs];
+    delete ttData[B.d][B.s][B.cs];
+    ttData[A.d][A.s][A.cs]=cB;
+    ttData[B.d][B.s][B.cs]=cA;
   }
 
-  function doPlace(d, s, cs, sub, tList) {
-    tt[d][s][cs] = { sub: sub, tl: tList };
-    sBusy[d][s][cs] = 1;
-    tList.forEach(function(tn) { tBusy[d][s][tn] = 1; });
-  }
-
-  // Separate Hindi / Bengali / other
-  var hindiList = allA.filter(function(a) { return a.sub === 'Hindi'; });
-  var bengMap   = {};
-  allA.filter(function(a) { return a.sub === 'Bengali'; })
-      .forEach(function(a) { bengMap[a.cs] = a; });
-  var others = allA.filter(function(a) { return a.sub !== 'Hindi' && a.sub !== 'Bengali'; });
-
-  // 1. Schedule Hindi/Bengali pairs (same slot, both teachers must be free)
-  var paired = {};
-  hindiList.forEach(function(ha) {
-    var ba = bengMap[ha.cs], placed = 0;
-    for (var d = 0; d < 4 && placed < ha.cnt; d++) {
-      for (var s = 0; s <= maxSlot(ha.cls) && placed < ha.cnt; s++) {
-        var bOk = ba ? !tBusy[d][s][ba.tn] : true;
-        if (canPlace(d, s, ha.cs, ha.cls, ha.tn) && bOk) {
-          var subLabel = ba ? 'Hindi / Bengali' : 'Hindi';
-          var tList    = [ha.tn]; if (ba) tList.push(ba.tn);
-          doPlace(d, s, ha.cs, subLabel, tList);
-          placed++;
-        }
-      }
-    }
-    paired[ha.cs] = 1;
-  });
-
-  // 2. Bengali without a Hindi partner
-  Object.keys(bengMap).forEach(function(cs) {
-    if (paired[cs]) return;
-    var ba = bengMap[cs], placed = 0;
-    for (var d = 0; d < 4 && placed < ba.cnt; d++) {
-      for (var s = 0; s <= maxSlot(ba.cls) && placed < ba.cnt; s++) {
-        if (canPlace(d, s, cs, ba.cls, ba.tn)) { doPlace(d, s, cs, 'Bengali', [ba.tn]); placed++; }
-      }
-    }
-  });
-
-  // 3. All other subjects (highest session-count first = hardest to place)
-  others.sort(function(a, b) { return b.cnt - a.cnt; });
-  others.forEach(function(task) {
-    var placed = 0;
-    for (var d = 0; d < 4 && placed < task.cnt; d++) {
-      for (var s = 0; s <= maxSlot(task.cls) && placed < task.cnt; s++) {
-        if (canPlace(d, s, task.cs, task.cls, task.tn)) {
-          doPlace(d, s, task.cs, task.sub, [task.tn]); placed++;
-        }
-      }
-    }
-  });
-
-  ttData = tt;
-
-  // Collect all class-sections, sorted
-  var csSet = {};
-  teachers.forEach(function(t) {
-    t.assignments.forEach(function(a) { csSet[a.classNum + '-' + a.section] = 1; });
-  });
-  var csList = Object.keys(csSet).sort(function(a, b) {
-    var ap = a.split('-'), bp = b.split('-');
-    return parseInt(ap[0]) - parseInt(bp[0]) || ap[1].localeCompare(bp[1]);
-  });
-  var trList = teachers.map(function(t) { return t.name; }).sort();
-  allTrList = trList;
-
-  renderTT(csList, trList);
-  document.getElementById('btn-print').style.display = '';
-  document.getElementById('btn-dl-t').style.display = '';
-  document.getElementById('btn-dl-s').style.display = '';
-  document.getElementById('gstat').textContent =
-    '✓ Timetable generated for ' + csList.length + ' section(s) across ' + trList.length + ' teacher(s).';
+  swapSlots=[];
+  document.getElementById('swap-modal').style.display='none';
+  document.getElementById('gstat').textContent='✓ Swap applied. Regenerate to reset.';
+  refreshCurrentView();
 }
 
-// ═══════════════════════════════════════════
-//  TIMETABLE RENDERING
-// ═══════════════════════════════════════════
-function subjCls(sub) {
-  if (!sub) return 's-df';
-  var l = sub.toLowerCase();
-  if (l.indexOf('english') >= 0)                          return 's-en';
-  if (l.indexOf('math') >= 0)                             return 's-ma';
-  if (l.indexOf('science') >= 0 && l.indexOf('social') < 0) return 's-sc';
-  if (l.indexOf('social') >= 0)                           return 's-ss';
-  if (l.indexOf('hindi') >= 0 || l.indexOf('bengali') >= 0) return 's-hi';
-  if (l.indexOf('computer') >= 0)                         return 's-co';
-  if (l.indexOf('ai') >= 0 || l.indexOf('artif') >= 0)   return 's-ai';
-  return 's-df';
-}
-
-function fmtCS(cs) {
-  var p = cs.split('-');
-  return 'Class ' + p[0] + '\u2013' + p[1];
-}
-
-function esc(s) {
-  return String(s)
-    .replace(/&/g,'&amp;').replace(/</g,'&lt;')
-    .replace(/>/g,'&gt;').replace(/"/g,'&quot;');
-}
-
-var LEGEND_ITEMS = [
-  { cls:'s-en', label:'English' },
-  { cls:'s-ma', label:'Maths' },
-  { cls:'s-sc', label:'Science' },
-  { cls:'s-ss', label:'Social Science' },
-  { cls:'s-hi', label:'Hindi / Bengali' },
-  { cls:'s-co', label:'Computer' },
-  { cls:'s-ai', label:'AI' },
-  { cls:'s-df', label:'Other' },
-];
-
-var LEGEND_COLORS = {
-  's-en':'#378ADD','s-ma':'#639922','s-sc':'#7F77DD',
-  's-ss':'#EF9F27','s-hi':'#E24B4A','s-co':'#1D9E75',
-  's-ai':'#D4537E','s-df':'#8fa0b4'
-};
-
-function renderTT(csList, trList) {
-  var legendHTML = LEGEND_ITEMS.map(function(item) {
-    return '<span class="leg"><span class="leg-dot" style="background:' +
-      LEGEND_COLORS[item.cls] + '"></span>' + item.label + '</span>';
-  }).join('');
-
-  var el = document.getElementById('ttout');
-  el.innerHTML =
-    '<div class="vt">' +
-      '<button class="vb on" id="vb-s" onclick="setV(\'sec\')">By Section</button>' +
-      '<button class="vb"    id="vb-t" onclick="setV(\'tr\')">By Teacher</button>' +
-    '</div>' +
-    '<div class="legend">' + legendHTML + '</div>' +
-
-    '<div id="vw-sec">' +
-      '<div class="sbs" id="cs-sel">' +
-        csList.map(function(cs) {
-          return '<button class="sb" data-cs="' + cs + '" onclick="pickCS(\'' + cs + '\')">' +
-                 fmtCS(cs) + '</button>';
-        }).join('') +
-      '</div>' +
-      '<div id="sg-cont"><div class="empty" style="padding:20px 0;">Select a class-section above.</div></div>' +
-    '</div>' +
-
-    '<div id="vw-tr" style="display:none;">' +
-      '<div style="margin-bottom:12px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;">' +
-        '<input id="tr-search" type="text" placeholder="Search teacher…" style="max-width:260px;" oninput="filterTR(this.value)">' +
-        '<span id="tr-count" style="font-size:11px;color:var(--muted);"></span>' +
-      '</div>' +
-      '<div class="sbs" id="tr-sel"></div>' +
-      '<div id="tr-sel-overflow" style="display:none;"></div>' +
-      '<div id="tg-cont"><div class="empty" style="padding:20px 0;">Select a teacher above.</div></div>' +
-    '</div>';
-}
-
-function populateTrSel(filter) {
-  var sel = document.getElementById('tr-sel');
-  if (!sel) return;
-  var q = filter.trim().toUpperCase();
-  var filtered = allTrList.filter(function(t) { return !q || t.indexOf(q) >= 0; });
-  document.getElementById('tr-count').textContent =
-    filtered.length + ' of ' + allTrList.length + ' teacher(s)';
-  var show = filtered.slice(0, 60);
-  sel.innerHTML = show.map(function(t) {
-    return '<button class="sb" data-tr="' + esc(t) + '" onclick="pickTR(\'' + esc(t) + '\')">' +
-           esc(t) + '</button>';
-  }).join('');
-  if (filtered.length > 60) {
-    sel.innerHTML += '<span style="font-size:11px;color:var(--muted);align-self:center;">' +
-      '… ' + (filtered.length - 60) + ' more — refine search</span>';
-  }
-}
-
-function filterTR(val) { populateTrSel(val); }
-
-function setV(v) {
-  curView = v;
-  document.getElementById('vw-sec').style.display = (v === 'sec') ? '' : 'none';
-  document.getElementById('vw-tr').style.display  = (v === 'tr')  ? '' : 'none';
-  document.getElementById('vb-s').className = 'vb' + (v === 'sec' ? ' on' : '');
-  document.getElementById('vb-t').className = 'vb' + (v === 'tr'  ? ' on' : '');
-  if (v === 'tr') populateTrSel(document.getElementById('tr-search') ? document.getElementById('tr-search').value : '');
-}
-
-function buildGrid(getCellHTML, msOverride) {
-  var h = '<div class="ttg">' +
-    '<div class="tth" style="text-align:left;font-size:11px;">Slot</div>' +
-    DAYS.map(function(d) { return '<div class="tth">' + d + '</div>'; }).join('');
-
-  for (var s = 0; s < 4; s++) {
-    h += '<div class="ttsl">' + SLOTS[s] + '</div>';
-    for (var d = 0; d < 4; d++) {
-      var ms = (msOverride != null) ? msOverride : 3;
-      h += (s > ms)
-        ? '<div class="ttc na"></div>'
-        : getCellHTML(d, s);
+function confirmShift(){
+  if(!swapSlots.length) return;
+  var A=swapSlots[0];
+  var cA=ttData[A.d][A.s][A.cs];
+  if(!cA){ document.getElementById('swap-err').textContent='Slot A is empty.'; return; }
+  var ms=maxSlot(parseInt(A.cs.split('-')[0]));
+  // Find a free slot for same section
+  var found=null;
+  for(var d=0;d<4&&!found;d++){
+    for(var s=0;s<=ms&&!found;s++){
+      if(d===A.d&&s===A.s) continue;
+      if(ttData[d][s][A.cs]) continue;
+      var clash=checkClash(d,s,A.cs,cA.tl,null);
+      if(!clash) found={d:d,s:s};
     }
   }
-  return h + '</div>';
+  if(!found){ document.getElementById('swap-err').textContent='No free slot available for this section without a teacher clash.'; return; }
+  ttData[found.d][found.s][A.cs]=cA;
+  delete ttData[A.d][A.s][A.cs];
+  swapSlots=[];
+  document.getElementById('swap-modal').style.display='none';
+  document.getElementById('gstat').textContent='✓ Slot shifted to '+DAYS[found.d]+' '+SLOTS[found.s]+'. Regenerate to reset.';
+  refreshCurrentView();
 }
 
-function pickCS(cs) {
-  document.querySelectorAll('#cs-sel .sb').forEach(function(b) {
-    b.className = 'sb' + (b.dataset.cs === cs ? ' on' : '');
-  });
-
-  var cls = parseInt(cs.split('-')[0]);
-  var ms  = maxSlot(cls);
-
-  var counts = {};
-  for (var d = 0; d < 4; d++) for (var s = 0; s <= ms; s++) {
-    var c = ttData[d][s][cs];
-    if (c) counts[c.sub] = (counts[c.sub] || 0) + 1;
+function refreshCurrentView(){
+  if(curView==='sec'){
+    var active=document.querySelector('#cs-sel .sb.on');
+    if(active) pickCS(active.dataset.cs);
+  } else {
+    var activeT=document.querySelector('#tr-sel .sb.on');
+    if(activeT) pickTR(activeT.dataset.tr);
   }
-  var summaryParts = Object.keys(counts).map(function(k) {
-    return '<b>' + esc(k) + '</b> ' + counts[k];
-  });
-  var summary = '<div class="info-bar"><span style="color:var(--text)">' + fmtCS(cs) +
-    '</span> &nbsp;|&nbsp; Sessions placed: ' +
-    (summaryParts.length ? summaryParts.join(', ') : 'none') + '</div>';
-
-  var grid = buildGrid(function(d, s) {
-    var c = ttData[d][s][cs];
-    if (!c) return '<div class="ttc emp">—</div>';
-    return '<div class="ttc ' + subjCls(c.sub) + '">' +
-      '<div class="tsub">' + esc(c.sub) + '</div>' +
-      '<div class="ttr">'  + c.tl.map(esc).join('<br>') + '</div>' +
-      '</div>';
-  }, ms);
-
-  document.getElementById('sg-cont').innerHTML = summary + grid;
 }
 
-function pickTR(name) {
-  document.querySelectorAll('#tr-sel .sb').forEach(function(b) {
-    b.className = 'sb' + (b.dataset.tr === name ? ' on' : '');
-  });
-
-  var cnt = 0;
-  for (var d = 0; d < 4; d++) for (var s = 0; s < 4; s++) {
-    Object.keys(ttData[d][s]).forEach(function(cs) {
-      var c = ttData[d][s][cs];
-      if (c && c.tl.indexOf(name) >= 0) cnt++;
-    });
-  }
-
-  var grid = buildGrid(function(d, s) {
-    var found = [];
-    Object.keys(ttData[d][s]).forEach(function(cs) {
-      var c = ttData[d][s][cs];
-      if (c && c.tl.indexOf(name) >= 0) found.push({ cs: cs, sub: c.sub });
-    });
-    if (!found.length) return '<div class="ttc emp" style="font-size:10px;">Free</div>';
-    var f = found[0];
-    var clash = found.length > 1
-      ? '<div class="ttr" style="color:#b91c1c;">&#9888; clash +' + (found.length - 1) + '</div>'
-      : '';
-    return '<div class="ttc ' + subjCls(f.sub) + '">' +
-      '<div class="tsub">' + esc(f.sub) + '</div>' +
-      '<div class="ttr">'  + esc(fmtCS(f.cs)) + '</div>' +
-      clash + '</div>';
-  }, null);
-
-  var info = '<div class="info-bar"><span style="color:var(--text)">' + esc(name) +
-    '</span> &nbsp;|&nbsp; ' + cnt + ' session(s) over 4 days</div>';
-  document.getElementById('tg-cont').innerHTML = info + grid;
-}
-
-// ═══════════════════════════════════════════
-//  DOWNLOAD HELPERS
-// ═══════════════════════════════════════════
-
-function buildPrintableGrid(getCellHTML, ms) {
-  var html = '<table style="border-collapse:collapse;width:100%;font-size:11px;">';
-  html += '<tr><th style="border:1px solid #ccc;padding:5px;background:#e4eaf1;">Slot</th>';
-  DAYS.forEach(function(d) {
-    html += '<th style="border:1px solid #ccc;padding:5px;background:#e4eaf1;">' + esc(d) + '</th>';
-  });
-  html += '</tr>';
-  for (var s = 0; s < 4; s++) {
-    html += '<tr><td style="border:1px solid #ccc;padding:5px;font-size:10px;color:#5a6a7e;">' + esc(SLOTS[s]) + '</td>';
-    for (var d = 0; d < 4; d++) {
-      html += (s > ms)
-        ? '<td style="border:1px solid #ccc;padding:5px;background:#f5f5f5;opacity:0.4;"></td>'
-        : getCellHTML(d, s);
+// ═══════════════════════════════════════
+//  DOWNLOAD
+// ═══════════════════════════════════════
+function buildPrintableGrid(getCellHTML,ms){
+  var html='<table style="border-collapse:collapse;width:100%;font-size:11px;">';
+  html+='<tr><th style="border:1px solid #ccc;padding:5px;background:#e4eaf1;">Slot</th>';
+  DAYS.forEach(function(d){ html+='<th style="border:1px solid #ccc;padding:5px;background:#e4eaf1;">'+esc(d)+'</th>'; });
+  html+='</tr>';
+  for(var s=0;s<4;s++){
+    html+='<tr><td style="border:1px solid #ccc;padding:5px;font-size:10px;color:#5a6a7e;">'+esc(SLOTS[s])+'</td>';
+    for(var d=0;d<4;d++){
+      html+=(s>ms)?'<td style="border:1px solid #ccc;padding:5px;background:#f5f5f5;"></td>':getCellHTML(d,s);
     }
-    html += '</tr>';
+    html+='</tr>';
   }
-  html += '</table>';
-  return html;
+  return html+'</table>';
 }
-
-function wrapPage(title, body) {
-  return '<div style="page-break-after:always;padding:14px;">' +
-    '<h3 style="font-family:Segoe UI,sans-serif;color:#1c3557;margin:0 0 8px;">' + esc(title) + '</h3>' +
-    body +
-    '</div>';
+function wrapPage(title,body){ return '<div style="page-break-after:always;padding:14px;"><h3 style="font-family:Segoe UI,sans-serif;color:#1c3557;margin:0 0 8px;">'+esc(title)+'</h3>'+body+'</div>'; }
+function triggerDownload(html,filename){
+  var full='<!DOCTYPE html><html><head><meta charset="UTF-8"><title>'+filename+'</title><style>body{font-family:Segoe UI,sans-serif;margin:0;padding:0;}@media print{div{page-break-after:always;}}</style></head><body>'+html+'</body></html>';
+  var blob=new Blob([full],{type:'text/html'});
+  var url=URL.createObjectURL(blob);
+  var a=document.createElement('a'); a.href=url; a.download=filename; a.click();
+  setTimeout(function(){ URL.revokeObjectURL(url); },2000);
 }
-
-function triggerDownload(html, filename) {
-  var full = '<!DOCTYPE html><html><head><meta charset="UTF-8">' +
-    '<title>' + filename + '</title>' +
-    '<style>body{font-family:Segoe UI,sans-serif;margin:0;padding:0;} @media print{div{page-break-after:always;}}</style>' +
-    '</head><body>' + html + '</body></html>';
-  var blob = new Blob([full], { type: 'text/html' });
-  var url  = URL.createObjectURL(blob);
-  var a    = document.createElement('a');
-  a.href = url; a.download = filename; a.click();
-  setTimeout(function() { URL.revokeObjectURL(url); }, 2000);
-}
-
-function dlTeacherWise() {
-  if (!ttData) { alert('Generate the timetable first.'); return; }
-  var pages = '';
-  allTrList.forEach(function(name) {
-    var cnt = 0;
-    var grid = buildPrintableGrid(function(d, s) {
-      var found = [];
-      Object.keys(ttData[d][s]).forEach(function(cs) {
-        var c = ttData[d][s][cs];
-        if (c && c.tl.indexOf(name) >= 0) found.push({ cs: cs, sub: c.sub });
-      });
-      if (!found.length) return '<td style="border:1px solid #ccc;padding:5px;color:#aaa;">Free</td>';
-      cnt++;
-      var f = found[0];
-      var clash = found.length > 1 ? ' ⚠ clash' : '';
-      return '<td style="border:1px solid #ccc;padding:5px;">' +
-        '<b>' + esc(f.sub) + '</b><br>' + esc(fmtCS(f.cs)) + clash + '</td>';
-    }, 3);
-    pages += wrapPage(name + ' — ' + cnt + ' session(s)', grid);
+function dlTeacherWise(){
+  if(!ttData){ alert('Generate the timetable first.'); return; }
+  var pages='';
+  allTrList.forEach(function(name){
+    var cnt=0;
+    var grid=buildPrintableGrid(function(d,s){
+      var found=[];
+      Object.keys(ttData[d][s]).forEach(function(cs){ var c=ttData[d][s][cs]; if(c&&c.tl.indexOf(name)>=0) found.push({cs:cs,sub:c.sub}); });
+      if(!found.length) return '<td style="border:1px solid #ccc;padding:5px;color:#aaa;">Free</td>';
+      cnt++; var f=found[0];
+      return '<td style="border:1px solid #ccc;padding:5px;"><b>'+esc(f.sub)+'</b><br>'+esc(fmtCS(f.cs))+(found.length>1?' ⚠':'')+'</td>';
+    },3);
+    pages+=wrapPage(name+' — '+cnt+' session(s)',grid);
   });
-  triggerDownload(pages, 'Teacher_Timetables_GDG.html');
+  triggerDownload(pages,'Teacher_Timetables_GDG.html');
+}
+function dlSectionWise(){
+  if(!ttData){ alert('Generate the timetable first.'); return; }
+  var pages='';
+  allCsList.forEach(function(cs){
+    var cls=parseInt(cs.split('-')[0]), ms=maxSlot(cls);
+    var grid=buildPrintableGrid(function(d,s){
+      var c=ttData[d][s][cs];
+      if(!c) return '<td style="border:1px solid #ccc;padding:5px;color:#aaa;">—</td>';
+      return '<td style="border:1px solid #ccc;padding:5px;"><b>'+esc(c.sub)+'</b><br>'+c.tl.map(esc).join(', ')+'</td>';
+    },ms);
+    pages+=wrapPage(fmtCS(cs),grid);
+  });
+  triggerDownload(pages,'Section_Timetables_GDG.html');
 }
 
-function dlSectionWise() {
-  if (!ttData) { alert('Generate the timetable first.'); return; }
-  var csSet = {};
-  teachers.forEach(function(t) {
-    t.assignments.forEach(function(a) { csSet[a.classNum + '-' + a.section] = 1; });
-  });
-  var csList = Object.keys(csSet).sort(function(a, b) {
-    var ap = a.split('-'), bp = b.split('-');
-    return parseInt(ap[0]) - parseInt(bp[0]) || ap[1].localeCompare(bp[1]);
-  });
-  var pages = '';
-  csList.forEach(function(cs) {
-    var cls = parseInt(cs.split('-')[0]);
-    var ms  = maxSlot(cls);
-    var grid = buildPrintableGrid(function(d, s) {
-      var c = ttData[d][s][cs];
-      if (!c) return '<td style="border:1px solid #ccc;padding:5px;color:#aaa;">—</td>';
-      return '<td style="border:1px solid #ccc;padding:5px;">' +
-        '<b>' + esc(c.sub) + '</b><br>' + c.tl.map(esc).join(', ') + '</td>';
-    }, ms);
-    pages += wrapPage(fmtCS(cs), grid);
-  });
-  triggerDownload(pages, 'Section_Timetables_GDG.html');
+// ═══════════════════════════════════════
+//  PRINT / TAB
+// ═══════════════════════════════════════
+function printTT(){ window.print(); }
+function goTab(i){
+  document.getElementById('tp0').style.display=(i===0)?'':'none';
+  document.getElementById('tp1').style.display=(i===1)?'':'none';
+  document.getElementById('tb0').className='tab'+(i===0?' on':'');
+  document.getElementById('tb1').className='tab'+(i===1?' on':'');
 }
-
-// ═══════════════════════════════════════════
-//  PRINT / EXPORT
-// ═══════════════════════════════════════════
-function printTT() { window.print(); }
-
-// ═══════════════════════════════════════════
-//  INIT
-// ═══════════════════════════════════════════
-loadTeachers();
-addRow();
 </script>
-
 </body>
 </html>
