@@ -398,20 +398,26 @@ function saveMyData() {
     if(c&&s&&b&&n) ass.push({classNum:parseInt(c),section:s,subject:b,count:n});
   });
   if (!ass.length){ alert('Please complete at least one assignment row.'); return; }
-  // Validate banned subject names
-  var badSubs=[];
+  // Validate subject names
+  var hardBad=[], softBad=[];
   ass.forEach(function(a){
     var sl=normSub(a.subject).toLowerCase(), n=parseInt(a.classNum);
-    if(n>=7&&n<=10 && BANNED_SUBS_7TO10.indexOf(sl)>=0)
-      badSubs.push('Class '+a.classNum+a.section+': "'+normSub(a.subject)+'" is not allowed for VII-X. Use: Civics, Geography, History, Biology, Physics, Chemistry'+(n>=9?' or Economics':'')+' instead.');
+    // Hard blocks: language subjects without _2L/_3L
     if(n>=6&&n<=8 && BANNED_LANG_6TO8.indexOf(sl)>=0)
-      badSubs.push('Class '+a.classNum+a.section+': "'+normSub(a.subject)+'" is not allowed for VI-VIII. Use HINDI_2L, HINDI_3L, BENGALI_2L, or BENGALI_3L instead.');
+      hardBad.push('Class '+a.classNum+a.section+': "'+normSub(a.subject)+'" — use HINDI_2L, HINDI_3L, BENGALI_2L, or BENGALI_3L.');
     if(n>=9&&n<=10 && BANNED_LANG_6TO8.indexOf(sl)>=0)
-      badSubs.push('Class '+a.classNum+a.section+': "'+normSub(a.subject)+'" is not allowed for IX-X. Use HINDI_2L or BENGALI_2L instead (2nd language, 2 sessions).');
+      hardBad.push('Class '+a.classNum+a.section+': "'+normSub(a.subject)+'" — use HINDI_2L or BENGALI_2L (IX-X: 2nd language, 2 sessions).');
+    // Soft warnings: "Social Science" / "Science" for VII-X (still scheduled but should be updated)
+    if(n>=7&&n<=10 && (sl==='social science'||sl==='science'))
+      softBad.push('Class '+a.classNum+a.section+': "'+normSub(a.subject)+'" — please use individual subjects (Civics, Geography, History, Biology, Physics, Chemistry'+(n>=9?', Economics':'')+') for Classes VII-X.');
   });
-  if(badSubs.length){
-    alert('\u{1F6AB} Banned subject name(s):\n\n'+badSubs.join('\n\n')+'\n\nPlease correct before saving.');
+  if(hardBad.length){
+    alert('\uD83D\uDEAB Cannot save — banned subject name(s):\n\n'+hardBad.join('\n\n')+'\n\nPlease correct before saving.');
     return;
+  }
+  if(softBad.length){
+    var proceed=confirm('\u26A0 Subject name warning:\n\n'+softBad.join('\n\n')+'\n\nThese will still be scheduled (as 1 session fallback) but you should update them.\n\nSave anyway?');
+    if(!proceed) return;
   }
   var existing=teachers.find(function(t){ return t.name===name; });
   var data={ name:name, assignments:ass, savedAt:firebase.firestore.FieldValue.serverTimestamp() };
@@ -557,12 +563,12 @@ function normSub(s) {
 }
 
 // Returns the max sessions allowed per week for a subject/class combination.
-// Returns -1 if the subject is BANNED for that class range.
+// Returns -1 only for language subjects that must use _2L/_3L form (hard block).
+// "Social Science" / "Science" for VII-X are warned at save-time but still scheduled
+// as fallback (1 session) so teachers with old saved data aren't silently dropped.
 function reqSess(cls,sub){
   var n=parseInt(cls), s=normSub(sub), sl=s.toLowerCase();
-  // Block plain "Social Science" and "Science" for classes VII–X
-  if(n>=7&&n<=10 && BANNED_SUBS_7TO10.indexOf(sl)>=0) return -1;
-  // Block plain Hindi/Bengali for ALL of VI–X (must use _2L / _3L variants)
+  // Block plain Hindi/Bengali for ALL of VI–X (must use _2L / _3L variants) — hard ban
   if(n>=6&&n<=10 && BANNED_LANG_6TO8.indexOf(sl)>=0) return -1;
   // Classes VI–VIII language variants
   if(n>=6&&n<=8){
@@ -573,9 +579,11 @@ function reqSess(cls,sub){
   if(n>=9&&n<=10){
     if(sl==='hindi_2l'||sl==='bengali_2l') return 2;  // 2nd language: 2 sessions
   }
-  // Rule 2: Classes VII–VIII — once-per-week subjects capped at 1
+  // Classes VII–VIII once-per-week subjects (includes individual SS/Sci subjects)
   if(n>=7&&n<=8){
     if(ONCE_PER_WEEK_7_8.indexOf(sl)>=0) return 1;
+    // "Social Science" / "Science" as fallback for old data — warn but schedule as 1
+    if(sl==='social science'||sl==='science') return 1;
     var m={'English':3,'Maths':3,'Computer':1}; return m[s]!=null?m[s]:null;
   }
   // Class VI fixed subjects
@@ -583,9 +591,11 @@ function reqSess(cls,sub){
     if(ONCE_PER_WEEK_7_8.indexOf(sl)>=0) return 1;
     var m3={'English':3,'Maths':3,'Science':3,'Social Science':3,'Computer':1}; return m3[s]!=null?m3[s]:null;
   }
-  // Rule 3: Classes IX–X — once-per-week subjects capped at 1
+  // Classes IX–X
   if(n>=9&&n<=10){
     if(ONCE_PER_WEEK_9_10.indexOf(sl)>=0) return 1;
+    // "Social Science" / "Science" as fallback for old data — warn but schedule as 1
+    if(sl==='social science'||sl==='science') return 1;
     var m2={'English':3,'Maths':3,'AI':1}; return m2[s]!=null?m2[s]:null;
   }
   return null;
@@ -607,20 +617,25 @@ function runSched() {
   var ordered=orderedTeachers(); // respects queue priority
 
   // Build flat assignment list preserving queue order
-  var allA=[], bannedEntries=[];
+  var allA=[], bannedEntries=[], softWarnEntries=[];
   ordered.forEach(function(t){
     (t.assignments||[]).forEach(function(a){
       var sub=normSub(a.subject), req=reqSess(a.classNum,sub);
-      // req===-1 means subject is banned for this class range
+      var sl=sub.toLowerCase(), n=parseInt(a.classNum);
+      // req===-1: hard ban (language subjects entered without _2L/_3L)
       if(req===-1){
-        var sl=sub.toLowerCase(), n=parseInt(a.classNum);
         var hint=(n>=6&&n<=8&&['hindi','bengali'].indexOf(sl)>=0)
           ? ' Use HINDI_2L / HINDI_3L / BENGALI_2L / BENGALI_3L instead.'
           : (n>=9&&n<=10&&['hindi','bengali'].indexOf(sl)>=0)
           ? ' Use HINDI_2L / BENGALI_2L instead (IX-X: 2nd language only, 2 sessions).'
-          : (n>=7&&n<=10?' Use specific subjects (Civics, Geography, History, Biology, Physics, Chemistry'+(n>=9?' or Economics':'')+') instead.':'');
+          : '';
         bannedEntries.push({tn:t.name,cls:a.classNum,sub:sub,cs:a.classNum+'-'+a.section,hint:hint});
         return;
+      }
+      // Soft warning: "Social Science" or "Science" for VII-X — scheduled but teacher should update
+      if(n>=7&&n<=10 && (sl==='social science'||sl==='science')){
+        var swHint=' Please update to use individual subjects: Civics, Geography, History, Biology, Physics, Chemistry'+(n>=9?' or Economics':'')+'. (Scheduled as 1 session this run as fallback.)';
+        softWarnEntries.push({tn:t.name,cls:a.classNum,sub:sub,cs:a.classNum+'-'+a.section,hint:swHint});
       }
       var cnt=(req!=null)?req:Math.min(a.count,(maxSlot(a.classNum)+1)*4);
       allA.push({tn:t.name,cls:parseInt(a.classNum),sec:a.section,sub:sub,cnt:cnt,cs:a.classNum+'-'+a.section,placed:0,unplaced:0});
@@ -815,22 +830,66 @@ function runSched() {
   ttData=tt;
 
   // Collect sections & teachers
+  // csSet: from ALL assignments (so every entered section appears even if nothing placed)
   var csSet={};
   ordered.forEach(function(t){ (t.assignments||[]).forEach(function(a){ csSet[a.classNum+'-'+a.section]=1; }); });
   allCsList=Object.keys(csSet).sort(function(a,b){
     var ap=a.split('-'),bp=b.split('-');
     return parseInt(ap[0])-parseInt(bp[0])||ap[1].localeCompare(bp[1]);
   });
-  allTrList=ordered.map(function(t){ return t.name; });
 
-  // ── Warn about banned subjects (Rule 4) ──
+  // allTrList: only teachers who have at least one valid (non-banned) assignment
+  // — teachers whose every subject was banned will NOT appear in the timetable views,
+  //   and will instead get a clear warning below.
+  var trWithValid={};
+  allA.forEach(function(a){ trWithValid[a.tn]=1; });
+  langSubs.forEach(function(a){ trWithValid[a.tn]=1; });
+  allTrList=ordered.map(function(t){ return t.name; }).filter(function(n){ return trWithValid[n]; });
+
+  // Teachers with ONLY banned entries — flag them separately
+  var allBannedTeachers=[];
+  ordered.forEach(function(t){
+    if(!trWithValid[t.name]){
+      var bannedForThis=bannedEntries.filter(function(b){ return b.tn===t.name; });
+      if(bannedForThis.length) allBannedTeachers.push({name:t.name, entries:bannedForThis});
+    }
+  });
+
+  // ── Warn about banned subjects ──
   var warnEl=document.getElementById('warn-out');
   var warnHTML='';
-  if(bannedEntries.length){
-    var blines=bannedEntries.map(function(a){
-      return '• <b>'+esc(a.tn)+'</b> entered <b>'+esc(a.sub)+'</b> for '+esc(fmtCS(a.cs))+' — <b>not allowed</b>.'+esc(a.hint||'');
+
+  // Teachers completely absent from timetable because ALL their subjects were banned
+  if(allBannedTeachers.length){
+    var abLines=allBannedTeachers.map(function(t){
+      return '• <b>'+esc(t.name)+'</b> — all assignments used banned subject names and were skipped entirely. '+
+             'This teacher will NOT appear in the timetable or Teacher-wise view. '+
+             t.entries.map(function(e){ return esc(fmtCS(e.cs))+': "'+esc(e.sub)+'"'+esc(e.hint||''); }).join('; ');
     });
-    warnHTML+='<div class="warn-box" style="border-color:#fca5a5;background:#fff0f0;color:#b91c1c;"><strong>🚫 Banned subject names for Classes VII–X</strong><br>'+blines.join('<br>')+'</div>';
+    warnHTML+='<div class="warn-box" style="border-color:#fca5a5;background:#fff0f0;color:#b91c1c;">'+
+      '<strong>🚫 These teachers have NO valid assignments — they are hidden from the timetable</strong><br>'+
+      abLines.join('<br>')+'</div>';
+  }
+
+  // Partial banned entries (teacher has some valid + some banned)
+  var partialBanned=bannedEntries.filter(function(b){
+    return trWithValid[b.tn]; // teacher has at least one valid assignment
+  });
+  if(partialBanned.length){
+    var blines=partialBanned.map(function(a){
+      return '• <b>'+esc(a.tn)+'</b> — <b>'+esc(a.sub)+'</b> for '+esc(fmtCS(a.cs))+' was skipped (banned name).'+esc(a.hint||'');
+    });
+    warnHTML+='<div class="warn-box" style="border-color:#fca5a5;background:#fff0f0;color:#b91c1c;"><strong>🚫 Some assignments skipped due to banned subject names</strong><br>'+blines.join('<br>')+'</div>';
+  }
+
+  // ── Soft warning: old subject names still scheduled but should be updated ──
+  if(softWarnEntries.length){
+    var swLines=softWarnEntries.map(function(a){
+      return '• <b>'+esc(a.tn)+'</b> — <b>'+esc(a.sub)+'</b> for '+esc(fmtCS(a.cs))+'.'+esc(a.hint);
+    });
+    warnHTML+='<div class="warn-box"><strong>⚠ Subject names need updating for Classes VII–X</strong><br>'+
+      'These subjects were scheduled as 1 session (fallback) but the teacher should re-enter using individual subject names:<br>'+
+      swLines.join('<br>')+'</div>';
   }
 
   // ── Warn about unplaced sessions ──
@@ -851,7 +910,7 @@ function runSched() {
   ['btn-print','btn-dl-t','btn-dl-s'].forEach(function(id){ document.getElementById(id).style.display=''; });
   if(currentUser&&currentUser.isAdmin) document.getElementById('btn-swap').style.display='';
   document.getElementById('gstat').textContent=
-    '✓ Generated: '+allCsList.length+' section(s), '+allTrList.length+' teacher(s)'+(unplaced.length?' | ⚠ '+unplaced.length+' unplaced':'')+(bannedEntries.length?' | 🚫 '+bannedEntries.length+' banned subject(s)':'');
+    '✓ Generated: '+allCsList.length+' section(s), '+allTrList.length+' teacher(s)'+(unplaced.length?' | ⚠ '+unplaced.length+' unplaced':'')+(bannedEntries.length?' | 🚫 '+bannedEntries.length+' banned'+(allBannedTeachers.length?' ('+allBannedTeachers.length+' teacher(s) hidden)':''):'');
 }
 
 // ── RENDERING ─────────────────────────────────────────────
