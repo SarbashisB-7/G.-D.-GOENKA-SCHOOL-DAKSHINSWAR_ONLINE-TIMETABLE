@@ -541,7 +541,7 @@ function normLangStr(s){
     .replace(/bengali\s*\(\s*2l\s*\)/,'bengali_2l')
     .replace(/bengali\s*\(\s*3l\s*\)/,'bengali_3l');
 }
-function isLangSub(sub){ var l=normLangStr(sub); return ['hindi_2l','hindi_3l','bengali_2l','bengali_3l','hindi','bengali'].indexOf(l)>=0; }
+function isLangSub(sub){ var l=normLangStr(sub); return ['hindi_2l','hindi_3l','bengali_2l','bengali_3l','hindi','bengali'].indexOf(l)>=0 || (l.indexOf('hindi')>=0&&(l.indexOf('2l')>=0||l.indexOf('3l')>=0)) || (l.indexOf('bengali')>=0&&(l.indexOf('2l')>=0||l.indexOf('3l')>=0)); }
 function langBase(sub){ return normLangStr(sub).indexOf('hindi')>=0?'Hindi':'Bengali'; }
 function langLevel(sub){ return normLangStr(sub).indexOf('_3l')>=0?'3L':'2L'; }
 
@@ -1123,14 +1123,17 @@ function pickTR(name){
     var found=[];
     Object.keys(ttData[d][s]).forEach(function(cs){ var c=ttData[d][s][cs]; if(c&&c.tl.indexOf(name)>=0) found.push({cs:cs,sub:c.sub}); });
     if(!found.length) return '<div class="ttc emp" style="font-size:10px;">Free</div>';
-    cnt++; var f=found[0];
-    var clash=found.length>1?'<div class="ttr" style="color:#b91c1c;">⚠ clash +'+(found.length-1)+'</div>':'';
-    var swapAttr=isAdmin?' onclick="selectSwapSlot('+d+','+s+',\''+f.cs+'\')" title="Click to select for swap"':'';
-    var swapCls=isAdmin?' swappable':'';
-    return '<div class="ttc '+subjCls(f.sub)+swapCls+'"'+swapAttr+'>'+
-      '<div class="tsub">'+esc(f.sub)+'</div>'+
-      '<div class="ttr">'+esc(fmtCS(f.cs))+'</div>'+
-      clash+'</div>';
+    cnt+=found.length;
+    // Show ALL sections this teacher is in for this slot (valid for simultaneous language sessions)
+    var inner=found.map(function(f){
+      var swapAttr=isAdmin?' onclick="selectSwapSlot('+d+','+s+',\''+f.cs+'\')" title="Click to select for swap"':'';
+      var swapCls=isAdmin?' swappable':'';
+      return '<div class="ttc '+subjCls(f.sub)+swapCls+'"'+swapAttr+' style="margin-bottom:3px;">'+
+        '<div class="tsub">'+esc(f.sub)+'</div>'+
+        '<div class="ttr">'+esc(fmtCS(f.cs))+'</div>'+
+        '</div>';
+    }).join('');
+    return '<div style="display:flex;flex-direction:column;gap:2px;">'+inner+'</div>';
   },null);
   var info='<div class="info-bar"><span style="color:var(--text)">'+esc(name)+'</span> &nbsp;|&nbsp; '+cnt+' session(s) over 4 days</div>';
   document.getElementById('tg-cont').innerHTML=info+grid;
