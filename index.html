@@ -213,8 +213,11 @@
       <div class="card" style="padding:12px 16px;">
         <div class="ct" style="margin-bottom:8px;">Fixed session requirements (21–24 Apr)</div>
         <div style="font-size:12px;color:var(--muted);line-height:1.8;">
-          <b style="color:var(--text);">Class VI–VIII per section:</b> English 3 · Maths 3 · Science 3 · Social Science 3 · Hindi/Bengali 3 (simultaneous) · Computer 1<br>
-          <b style="color:var(--text);">Class IX–X per section:</b> English 3 · Maths 3 · Science 3 · Social Science 4 · Hindi/Bengali 3 (simultaneous) · AI 1<br>
+          <b style="color:var(--text);">Class VI per section:</b> English 3 · Maths 3 · Science 3 · Social Science 3 · Computer 1 · HINDI_2L 2 + BENGALI_2L 2 (2nd lang, simultaneous) · HINDI_3L 1 + BENGALI_3L 1 (3rd lang, simultaneous)<br>
+          <b style="color:var(--text);">Class VII–VIII per section:</b> English 3 · Maths 3 · Computer 1 · Civics 1 · Geography 1 · History 1 · Biology 1 · Physics 1 · Chemistry 1 · HINDI_2L 2 + BENGALI_2L 2 · HINDI_3L 1 + BENGALI_3L 1<br>
+          <b style="color:var(--text);">Class IX–X per section:</b> English 3 · Maths 3 · Hindi 3 · Bengali 3 · AI 1 · Civics 1 · Geography 1 · History 1 · Economics 1 · Biology 1 · Physics 1 · Chemistry 1<br>
+          <b style="color:var(--danger-tx);">⚠ Classes VI–VIII Languages:</b> Enter as <b>HINDI_2L</b> / <b>HINDI_3L</b> / <b>BENGALI_2L</b> / <b>BENGALI_3L</b>. Plain "Hindi" or "Bengali" is NOT allowed for Classes VI–VIII.<br>
+          <b style="color:var(--danger-tx);">⚠ Classes VII–X:</b> Do NOT use "Social Science" or "Science" — enter each subject individually.<br>
           <b style="color:var(--text);">Class III–V / XI–XII:</b> Uses the sessions/week value you enter (capped to available slots).
         </div>
       </div>
@@ -394,6 +397,19 @@ function saveMyData() {
     if(c&&s&&b&&n) ass.push({classNum:parseInt(c),section:s,subject:b,count:n});
   });
   if (!ass.length){ alert('Please complete at least one assignment row.'); return; }
+  // Validate banned subject names
+  var badSubs=[];
+  ass.forEach(function(a){
+    var sl=normSub(a.subject).toLowerCase(), n=parseInt(a.classNum);
+    if(n>=7&&n<=10 && BANNED_SUBS_7TO10.indexOf(sl)>=0)
+      badSubs.push('Class '+a.classNum+a.section+': "'+normSub(a.subject)+'" is not allowed for VII-X. Use: Civics, Geography, History, Biology, Physics, Chemistry'+(n>=9?' or Economics':'')+' instead.');
+    if(n>=6&&n<=8 && BANNED_LANG_6TO8.indexOf(sl)>=0)
+      badSubs.push('Class '+a.classNum+a.section+': "'+normSub(a.subject)+'" is not allowed for VI-VIII. Use HINDI_2L, HINDI_3L, BENGALI_2L, or BENGALI_3L instead.');
+  });
+  if(badSubs.length){
+    alert('\u{1F6AB} Banned subject name(s):\n\n'+badSubs.join('\n\n')+'\n\nPlease correct before saving.');
+    return;
+  }
   var existing=teachers.find(function(t){ return t.name===name; });
   var data={ name:name, assignments:ass, savedAt:firebase.firestore.FieldValue.serverTimestamp() };
   var p=existing ? teachersCol.doc(existing._id).set(data) : teachersCol.add(data);
@@ -496,22 +512,75 @@ function resetQueueOrder() {
 }
 
 // ── Algorithm constants ───────────────────────────────────
+// BANNED_SUBS_7TO10: "Social Science" and "Science" are not allowed for classes VII–X.
+var BANNED_SUBS_7TO10 = ['social science','science'];
+// Plain Hindi/Bengali banned for VI-VIII (must use Hindi_2L / Hindi_3L / Bengali_2L / Bengali_3L)
+var BANNED_LANG_6TO8 = ['hindi','bengali'];
+
+// One-per-week subjects for VII–VIII
+var ONCE_PER_WEEK_7_8 = ['civics','geography','history','biology','physics','chemistry'];
+// One-per-week subjects for IX–X (adds economics)
+var ONCE_PER_WEEK_9_10 = ['civics','geography','history','economics','biology','physics','chemistry'];
+
+// Language subject helpers
+function isLangSub(sub){ var l=sub.toLowerCase(); return ['hindi_2l','hindi_3l','bengali_2l','bengali_3l','hindi','bengali'].indexOf(l)>=0; }
+function langBase(sub){ return sub.toLowerCase().indexOf('hindi')>=0?'Hindi':'Bengali'; }
+function langLevel(sub){ return sub.toLowerCase().indexOf('_3l')>=0?'3L':'2L'; }
+
 function normSub(s) {
-  var l=s.trim().toLowerCase();
+  var l=s.trim().toLowerCase().replace(/\s+/g,'_');
   if(['maths','mathematics','math'].indexOf(l)>=0) return 'Maths';
   if(l==='english') return 'English';
   if(l==='science') return 'Science';
-  if(['social science','social studies','sst','ss','history','geography','civics','economics'].indexOf(l)>=0) return 'Social Science';
+  if(['social_science','social_studies','sst','ss'].indexOf(l)>=0) return 'Social Science';
+  if(l==='civics') return 'Civics';
+  if(l==='geography') return 'Geography';
+  if(l==='history') return 'History';
+  if(l==='economics') return 'Economics';
+  if(l==='biology') return 'Biology';
+  if(l==='physics') return 'Physics';
+  if(l==='chemistry') return 'Chemistry';
+  // Language variants for VI-VIII (must use _2L / _3L)
+  if(['hindi_2l','hindi_2nd','hindi_second'].indexOf(l)>=0) return 'Hindi_2L';
+  if(['hindi_3l','hindi_3rd','hindi_third'].indexOf(l)>=0) return 'Hindi_3L';
+  if(['bengali_2l','bengali_2nd','bengali_second'].indexOf(l)>=0) return 'Bengali_2L';
+  if(['bengali_3l','bengali_3rd','bengali_third'].indexOf(l)>=0) return 'Bengali_3L';
+  // Plain Hindi/Bengali still recognised (for IX-X / non VI-VIII)
   if(l==='hindi') return 'Hindi';
   if(l==='bengali') return 'Bengali';
-  if(['computer','computer science','cs','it','information technology','informatics practices','ip'].indexOf(l)>=0) return 'Computer';
-  if(['ai','artificial intelligence','a.i.'].indexOf(l)>=0) return 'AI';
+  if(['computer','computer_science','cs','it','information_technology','informatics_practices','ip'].indexOf(l)>=0) return 'Computer';
+  if(['ai','artificial_intelligence','a.i.'].indexOf(l)>=0) return 'AI';
   return s.trim();
 }
+
+// Returns the max sessions allowed per week for a subject/class combination.
+// Returns -1 if the subject is BANNED for that class range.
 function reqSess(cls,sub){
-  var n=parseInt(cls), s=normSub(sub);
-  if(n>=6&&n<=8){ var m={'English':3,'Maths':3,'Science':3,'Social Science':3,'Hindi':3,'Bengali':3,'Computer':1}; return m[s]!=null?m[s]:null; }
-  if(n>=9&&n<=10){ var m2={'English':3,'Maths':3,'Science':3,'Social Science':4,'Hindi':3,'Bengali':3,'AI':1}; return m2[s]!=null?m2[s]:null; }
+  var n=parseInt(cls), s=normSub(sub), sl=s.toLowerCase();
+  // Block plain "Social Science" and "Science" for classes VII–X
+  if(n>=7&&n<=10 && BANNED_SUBS_7TO10.indexOf(sl)>=0) return -1;
+  // Block plain Hindi/Bengali for VI–VIII (must use _2L / _3L variants)
+  if(n>=6&&n<=8 && BANNED_LANG_6TO8.indexOf(sl)>=0) return -1;
+  // Classes VI–VIII language variants
+  if(n>=6&&n<=8){
+    if(sl==='hindi_2l'||sl==='bengali_2l') return 2;  // 2nd language: 2 sessions
+    if(sl==='hindi_3l'||sl==='bengali_3l') return 1;  // 3rd language: 1 session
+  }
+  // Rule 2: Classes VII–VIII — once-per-week subjects capped at 1
+  if(n>=7&&n<=8){
+    if(ONCE_PER_WEEK_7_8.indexOf(sl)>=0) return 1;
+    var m={'English':3,'Maths':3,'Computer':1}; return m[s]!=null?m[s]:null;
+  }
+  // Class VI fixed subjects
+  if(n===6){
+    if(ONCE_PER_WEEK_7_8.indexOf(sl)>=0) return 1; // reuse same list for VI if needed
+    var m3={'English':3,'Maths':3,'Science':3,'Social Science':3,'Computer':1}; return m3[s]!=null?m3[s]:null;
+  }
+  // Rule 3: Classes IX–X — once-per-week subjects capped at 1
+  if(n>=9&&n<=10){
+    if(ONCE_PER_WEEK_9_10.indexOf(sl)>=0) return 1;
+    var m2={'English':3,'Maths':3,'Hindi':3,'Bengali':3,'AI':1}; return m2[s]!=null?m2[s]:null;
+  }
   return null;
 }
 function maxSlot(cls){ return parseInt(cls)<=5?2:3; }
@@ -531,10 +600,19 @@ function runSched() {
   var ordered=orderedTeachers(); // respects queue priority
 
   // Build flat assignment list preserving queue order
-  var allA=[];
+  var allA=[], bannedEntries=[];
   ordered.forEach(function(t){
     (t.assignments||[]).forEach(function(a){
       var sub=normSub(a.subject), req=reqSess(a.classNum,sub);
+      // req===-1 means subject is banned for this class range
+      if(req===-1){
+        var sl=sub.toLowerCase(), n=parseInt(a.classNum);
+        var hint=(n>=6&&n<=8&&['hindi','bengali'].indexOf(sl)>=0)
+          ? ' Use HINDI_2L / HINDI_3L / BENGALI_2L / BENGALI_3L instead.'
+          : (n>=7&&n<=10?' Use specific subjects (Civics, Geography, History, Biology, Physics, Chemistry'+(n>=9?' or Economics':'')+') instead.':'');
+        bannedEntries.push({tn:t.name,cls:a.classNum,sub:sub,cs:a.classNum+'-'+a.section,hint:hint});
+        return;
+      }
       var cnt=(req!=null)?req:Math.min(a.count,(maxSlot(a.classNum)+1)*4);
       allA.push({tn:t.name,cls:parseInt(a.classNum),sec:a.section,sub:sub,cnt:cnt,cs:a.classNum+'-'+a.section,placed:0,unplaced:0});
     });
@@ -566,44 +644,132 @@ function runSched() {
     tList.forEach(function(tn){ tBusy[d][s][tn]=1; });
   }
 
-  // ── Schedule Hindi/Bengali simultaneously (same section, same slot) ──
-  var hindiList=allA.filter(function(a){ return a.sub==='Hindi'; });
-  var bengMap={};
-  allA.filter(function(a){ return a.sub==='Bengali'; }).forEach(function(a){ bengMap[a.cs]=a; });
-  var paired={};
+  // ── Schedule Language subjects (Hindi_2L/3L & Bengali_2L/3L) simultaneously ──
+  // Rules:
+  //   • Hindi_XL and Bengali_XL of the SAME section must share the same slot (run together).
+  //   • Same teacher can teach Hindi (or Bengali) to ALL sections of the same grade simultaneously
+  //     in a single slot — teacher is only marked busy once for that slot.
+  //   • 2L → 2 sessions/week, 3L → 1 session/week.
+  //   • Plain Hindi/Bengali (IX-X, non VI-VIII) keep the old paired logic.
 
-  hindiList.forEach(function(ha){
-    var ba=bengMap[ha.cs], placed=0;
-    for(var d=0;d<4&&placed<ha.cnt;d++){
-      for(var s=0;s<=maxSlot(ha.cls)&&placed<ha.cnt;s++){
-        var tList=[ha.tn]; if(ba) tList.push(ba.tn);
-        var bOk=ba?!tBusy[d][s][ba.tn]:true;
-        if(canPlace(d,s,ha.cs,ha.cls,ha.sub,tList)&&bOk){
-          doPlace(d,s,ha.cs,ba?'Hindi / Bengali':'Hindi',tList);
-          placed++; ha.placed++;
-          if(ba) ba.placed++;
-        }
-      }
-    }
-    ha.unplaced=ha.cnt-ha.placed;
-    paired[ha.cs]=1;
+  var langSubs=allA.filter(function(a){ return isLangSub(a.sub); });
+  var nonLangA=allA.filter(function(a){ return !isLangSub(a.sub); });
+
+  // Group by [grade, level, base-language]: e.g. {6:{'2L':{'Hindi':[tasks...],'Bengali':[tasks...]}}}
+  var langGrp={};
+  langSubs.forEach(function(a){
+    var n=a.cls, base=langBase(a.sub), lvl=(a.sub.indexOf('_')>=0)?langLevel(a.sub):'plain';
+    if(!langGrp[n]) langGrp[n]={};
+    if(!langGrp[n][lvl]) langGrp[n][lvl]={};
+    if(!langGrp[n][lvl][base]) langGrp[n][lvl][base]=[];
+    langGrp[n][lvl][base].push(a);
   });
 
-  // Bengali without Hindi partner
-  Object.keys(bengMap).forEach(function(cs){
-    if(paired[cs]) return;
-    var ba=bengMap[cs], placed=0;
-    for(var d=0;d<4&&placed<ba.cnt;d++){
-      for(var s=0;s<=maxSlot(ba.cls)&&placed<ba.cnt;s++){
-        if(canPlace(d,s,cs,ba.cls,ba.sub,[ba.tn])){ doPlace(d,s,cs,'Bengali',[ba.tn]); placed++; ba.placed++; }
+  // For each grade+level, schedule Hindi and Bengali together slot-by-slot.
+  // All sections of the same grade+level share a slot when the same teacher teaches multiple sections.
+  Object.keys(langGrp).forEach(function(gradeStr){
+    var grade=parseInt(gradeStr);
+    Object.keys(langGrp[grade]).forEach(function(lvl){
+      var grpH=langGrp[grade][lvl]['Hindi']||[];
+      var grpB=langGrp[grade][lvl]['Bengali']||[];
+      var displaySub= lvl==='plain' ? 'Hindi / Bengali' :
+                      lvl==='2L'    ? 'Hindi ⁄ Bengali (2nd Lang)' :
+                                      'Hindi ⁄ Bengali (3rd Lang)';
+      var hSub= lvl==='plain'?'Hindi': lvl==='2L'?'Hindi_2L':'Hindi_3L';
+      var bSub= lvl==='plain'?'Bengali': lvl==='2L'?'Bengali_2L':'Bengali_3L';
+
+      // Each task in grpH / grpB needs `cnt` slots placed.
+      // Strategy: iterate day/slot; at each (d,s) find ALL Hindi tasks and ALL Bengali tasks
+      // that still need placement AND whose section is free AND whose section hasn't had this
+      // sub today. Teachers of the same base-language are collected — a teacher only needs to
+      // be free once (they can teach multiple sections simultaneously).
+      // We place all willing sections in one shot per (d,s).
+
+      // Track remaining count per task
+      grpH.forEach(function(t){ if(t._rem===undefined) t._rem=t.cnt; });
+      grpB.forEach(function(t){ if(t._rem===undefined) t._rem=t.cnt; });
+
+      for(var d=0;d<4;d++){
+        for(var s=0;s<=maxSlot(grade);s++){
+          // Find Hindi tasks that can go here
+          var hReady=grpH.filter(function(t){
+            if(t._rem<=0) return false;
+            if(sBusy[d][s][t.cs]) return false;
+            if(tt[d][s][t.cs]) return false;
+            if(daySubBusy[d][t.cs]&&daySubBusy[d][t.cs][hSub]) return false;
+            return true;
+          });
+          // Find Bengali tasks that can go here (section must match a Hindi task's section
+          // — each section must have its own Hindi+Bengali together)
+          var bReady=grpB.filter(function(t){
+            if(t._rem<=0) return false;
+            if(sBusy[d][s][t.cs]) return false;
+            if(tt[d][s][t.cs]) return false;
+            if(daySubBusy[d][t.cs]&&daySubBusy[d][t.cs][bSub]) return false;
+            return true;
+          });
+
+          // For each section that has BOTH a Hindi and Bengali task ready, place them
+          // Collect unique Hindi teachers and Bengali teachers (they may serve multiple sections)
+          var hTeachers=[], bTeachers=[];
+          var sectionsToPlace=[];
+
+          hReady.forEach(function(ht){
+            // Check if this section also has Bengali ready
+            var bt=bReady.find(function(b){ return b.cs===ht.cs; });
+            if(!bt && grpB.length>0) return; // section must have Bengali partner if any Bengali exists for this grade/lvl
+            // Check teacher availability (teacher only needs to be free once across multi-section)
+            if(hTeachers.indexOf(ht.tn)<0 && tBusy[d][s][ht.tn]) return; // this teacher busy and not already counted
+            if(bt && bTeachers.indexOf(bt.tn)<0 && tBusy[d][s][bt.tn]) return;
+            sectionsToPlace.push({ht:ht,bt:bt});
+            if(hTeachers.indexOf(ht.tn)<0) hTeachers.push(ht.tn);
+            if(bt && bTeachers.indexOf(bt.tn)<0) bTeachers.push(bt.tn);
+          });
+
+          if(!sectionsToPlace.length) continue;
+
+          // Place each section; mark teachers busy only once
+          var teachersMarked=[];
+          sectionsToPlace.forEach(function(pair){
+            var tList=[pair.ht.tn];
+            if(pair.bt && tList.indexOf(pair.bt.tn)<0) tList.push(pair.bt.tn);
+            var label= pair.bt ? displaySub : (lvl==='plain'?'Hindi':hSub);
+            // doPlace but don't re-mark teachers already marked
+            tt[d][s][pair.ht.cs]={sub:label,tl:tList};
+            sBusy[d][s][pair.ht.cs]=1;
+            if(!daySubBusy[d][pair.ht.cs]) daySubBusy[d][pair.ht.cs]={};
+            daySubBusy[d][pair.ht.cs][hSub]=1;
+            if(pair.bt){ daySubBusy[d][pair.ht.cs][bSub]=1; }
+            tList.forEach(function(tn){
+              if(teachersMarked.indexOf(tn)<0){ tBusy[d][s][tn]=1; teachersMarked.push(tn); }
+            });
+            pair.ht._rem--; pair.ht.placed++;
+            if(pair.bt){ pair.bt._rem--; pair.bt.placed++; }
+          });
+        }
       }
-    }
-    ba.unplaced=ba.cnt-ba.placed;
+
+      // Copy remaining → unplaced
+      grpH.forEach(function(t){ t.unplaced=t._rem||0; });
+      grpB.forEach(function(t){ t.unplaced=t._rem||0; });
+
+      // Handle Bengali sections that have NO Hindi partner at this grade/level
+      grpB.filter(function(t){ return !grpH.find(function(h){ return h.cs===t.cs; }); }).forEach(function(ba){
+        if(ba.placed===undefined) ba.placed=0;
+        for(var d=0;d<4;d++){
+          for(var s=0;s<=maxSlot(grade);s++){
+            if(ba._rem<=0) break;
+            if(canPlace(d,s,ba.cs,grade,bSub,[ba.tn])){ doPlace(d,s,ba.cs,bSub,[ba.tn]); ba._rem--; ba.placed++; }
+          }
+        }
+        ba.unplaced=ba._rem||0;
+      });
+    });
   });
 
   // ── Schedule everything else ──
   // Sort by: highest session count first (hardest to place), preserving queue order as tiebreak
-  var others=allA.filter(function(a){ return a.sub!=='Hindi'&&a.sub!=='Bengali'; });
+  var others=nonLangA.filter(function(a){ return !isLangSub(a.sub); });
   others.sort(function(a,b){ return b.cnt-a.cnt; });
 
   others.forEach(function(task){
@@ -629,24 +795,35 @@ function runSched() {
   });
   allTrList=ordered.map(function(t){ return t.name; });
 
+  // ── Warn about banned subjects (Rule 4) ──
+  var warnEl=document.getElementById('warn-out');
+  var warnHTML='';
+  if(bannedEntries.length){
+    var blines=bannedEntries.map(function(a){
+      return '• <b>'+esc(a.tn)+'</b> entered <b>'+esc(a.sub)+'</b> for '+esc(fmtCS(a.cs))+' — <b>not allowed</b>.'+esc(a.hint||'');
+    });
+    warnHTML+='<div class="warn-box" style="border-color:#fca5a5;background:#fff0f0;color:#b91c1c;"><strong>🚫 Banned subject names for Classes VII–X</strong><br>'+blines.join('<br>')+'</div>';
+  }
+
   // ── Warn about unplaced sessions ──
   var unplaced=allA.filter(function(a){ return a.unplaced>0; });
-  var warnEl=document.getElementById('warn-out');
   if(unplaced.length){
     var lines=unplaced.map(function(a){
       return '• <b>'+esc(a.tn)+'</b> → '+esc(a.sub)+' for '+esc(fmtCS(a.cs))+
              ': '+a.placed+' placed, <b>'+a.unplaced+' could not be placed</b> (clash or no free slot)';
     });
-    warnEl.innerHTML='<div class="warn-box"><strong>⚠ Some sessions could not be placed</strong>'+lines.join('<br>')+'</div>';
-  } else {
-    warnEl.innerHTML='<div style="font-size:12px;color:var(--green);margin-bottom:10px;">✓ All sessions placed successfully — no clashes.</div>';
+    warnHTML+='<div class="warn-box"><strong>⚠ Some sessions could not be placed</strong><br>'+lines.join('<br>')+'</div>';
   }
+  if(!warnHTML){
+    warnHTML='<div style="font-size:12px;color:var(--green);margin-bottom:10px;">✓ All sessions placed successfully — no clashes.</div>';
+  }
+  warnEl.innerHTML=warnHTML;
 
   renderTT(allCsList,allTrList);
   ['btn-print','btn-dl-t','btn-dl-s'].forEach(function(id){ document.getElementById(id).style.display=''; });
   if(currentUser&&currentUser.isAdmin) document.getElementById('btn-swap').style.display='';
   document.getElementById('gstat').textContent=
-    '✓ Generated: '+allCsList.length+' section(s), '+allTrList.length+' teacher(s)'+(unplaced.length?' | ⚠ '+unplaced.length+' unplaced':'');
+    '✓ Generated: '+allCsList.length+' section(s), '+allTrList.length+' teacher(s)'+(unplaced.length?' | ⚠ '+unplaced.length+' unplaced':'')+(bannedEntries.length?' | 🚫 '+bannedEntries.length+' banned subject(s)':'');
 }
 
 // ── RENDERING ─────────────────────────────────────────────
@@ -656,9 +833,13 @@ function subjCls(sub){
   if(l.indexOf('math')>=0) return 's-ma';
   if(l.indexOf('science')>=0&&l.indexOf('social')<0) return 's-sc';
   if(l.indexOf('social')>=0) return 's-ss';
-  if(l.indexOf('hindi')>=0||l.indexOf('bengali')>=0) return 's-hi';
+  if(l.indexOf('hindi')>=0||l.indexOf('bengali')>=0||l.indexOf('_2l')>=0||l.indexOf('_3l')>=0) return 's-hi';
   if(l.indexOf('computer')>=0) return 's-co';
   if(l.indexOf('ai')>=0||l.indexOf('artif')>=0) return 's-ai';
+  // Individual social-science subjects
+  if(['civics','geography','history','economics'].some(function(k){ return l===k; })) return 's-ss';
+  // Individual science subjects
+  if(['biology','physics','chemistry'].some(function(k){ return l===k; })) return 's-sc';
   return 's-df';
 }
 
@@ -825,6 +1006,18 @@ function sameDaySubClash(d,cs,sub,ignoreSlot){
   return false;
 }
 
+// Rules 2 & 3: check if a once-per-week subject already appears anywhere in the week for this section
+function weekSubClash(cs,sub,ignoreD,ignoreS){
+  var cls=parseInt(cs.split('-')[0]), sl=sub.toLowerCase();
+  var onceList=(cls>=9&&cls<=10)?ONCE_PER_WEEK_9_10:(cls>=7&&cls<=8?ONCE_PER_WEEK_7_8:[]);
+  if(onceList.indexOf(sl)<0) return false; // not a once-per-week subject
+  for(var d=0;d<4;d++) for(var s=0;s<4;s++){
+    if(d===ignoreD&&s===ignoreS) continue;
+    var c=ttData[d][s][cs]; if(c&&c.sub.toLowerCase()===sl) return true;
+  }
+  return false;
+}
+
 function confirmSwap(){
   if(swapSlots.length<2) return;
   var A=swapSlots[0],B=swapSlots[1];
@@ -833,10 +1026,18 @@ function confirmSwap(){
   var e1=teacherClash(B.d,B.s,B.cs,cA.tl,A.cs);
   var e2=teacherClash(A.d,A.s,A.cs,cB.tl,B.cs);
   if(e1||e2){ document.getElementById('swap-err').textContent='Teacher clash: '+(e1||e2); return; }
-  // Subject-repeat check
+  // Subject-repeat check (same day)
   if(A.cs===B.cs){
     if(sameDaySubClash(B.d,B.cs,cA.sub,B.s)){ document.getElementById('swap-err').textContent=cA.sub+' already taught to '+fmtCS(A.cs)+' on '+DAYS[B.d]; return; }
     if(sameDaySubClash(A.d,A.cs,cB.sub,A.s)){ document.getElementById('swap-err').textContent=cB.sub+' already taught to '+fmtCS(B.cs)+' on '+DAYS[A.d]; return; }
+  }
+  // Once-per-week check (Rules 2 & 3): only needed when sections differ OR days differ
+  if(A.cs!==B.cs){
+    // Swapping subjects between sections — check each subject won't double up in its new section
+    if(weekSubClash(B.cs,cA.sub,B.d,B.s)){ document.getElementById('swap-err').textContent=cA.sub+' already has a session this week for '+fmtCS(B.cs)+' (once per week only)'; return; }
+    if(weekSubClash(A.cs,cB.sub,A.d,A.s)){ document.getElementById('swap-err').textContent=cB.sub+' already has a session this week for '+fmtCS(A.cs)+' (once per week only)'; return; }
+  } else if(A.d!==B.d){
+    // Same section, different days — subject moves to a different day, no week-count change, ok
   }
   // Do swap
   ttData[A.d][A.s][A.cs]=cB;
