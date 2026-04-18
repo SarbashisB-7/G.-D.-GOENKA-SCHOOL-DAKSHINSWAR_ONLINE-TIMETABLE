@@ -215,8 +215,9 @@
         <div style="font-size:12px;color:var(--muted);line-height:1.8;">
           <b style="color:var(--text);">Class VI per section:</b> English 3 · Maths 3 · Science 3 · Social Science 3 · Computer 1 · HINDI_2L 2 + BENGALI_2L 2 (2nd lang, simultaneous) · HINDI_3L 1 + BENGALI_3L 1 (3rd lang, simultaneous)<br>
           <b style="color:var(--text);">Class VII–VIII per section:</b> English 3 · Maths 3 · Computer 1 · Civics 1 · Geography 1 · History 1 · Biology 1 · Physics 1 · Chemistry 1 · HINDI_2L 2 + BENGALI_2L 2 · HINDI_3L 1 + BENGALI_3L 1<br>
-          <b style="color:var(--text);">Class IX–X per section:</b> English 3 · Maths 3 · Hindi 3 · Bengali 3 · AI 1 · Civics 1 · Geography 1 · History 1 · Economics 1 · Biology 1 · Physics 1 · Chemistry 1<br>
-          <b style="color:var(--danger-tx);">⚠ Classes VI–VIII Languages:</b> Enter as <b>HINDI_2L</b> / <b>HINDI_3L</b> / <b>BENGALI_2L</b> / <b>BENGALI_3L</b>. Plain "Hindi" or "Bengali" is NOT allowed for Classes VI–VIII.<br>
+          <b style="color:var(--text);">Class IX–X per section:</b> English 3 · Maths 3 · AI 1 · Civics 1 · Geography 1 · History 1 · Economics 1 · Biology 1 · Physics 1 · Chemistry 1 · HINDI_2L 2 + BENGALI_2L 2 (simultaneous, up to 2 sections at once)<br>
+          <b style="color:var(--danger-tx);">⚠ Classes VI–VIII Languages:</b> Enter as <b>HINDI_2L</b> / <b>HINDI_3L</b> / <b>BENGALI_2L</b> / <b>BENGALI_3L</b>. Plain "Hindi" or "Bengali" is NOT allowed.<br>
+          <b style="color:var(--danger-tx);">⚠ Classes IX–X Languages:</b> Enter as <b>HINDI_2L</b> / <b>BENGALI_2L</b> only (2nd language, 2 sessions). No 3rd language. Plain "Hindi"/"Bengali" not allowed.<br>
           <b style="color:var(--danger-tx);">⚠ Classes VII–X:</b> Do NOT use "Social Science" or "Science" — enter each subject individually.<br>
           <b style="color:var(--text);">Class III–V / XI–XII:</b> Uses the sessions/week value you enter (capped to available slots).
         </div>
@@ -405,6 +406,8 @@ function saveMyData() {
       badSubs.push('Class '+a.classNum+a.section+': "'+normSub(a.subject)+'" is not allowed for VII-X. Use: Civics, Geography, History, Biology, Physics, Chemistry'+(n>=9?' or Economics':'')+' instead.');
     if(n>=6&&n<=8 && BANNED_LANG_6TO8.indexOf(sl)>=0)
       badSubs.push('Class '+a.classNum+a.section+': "'+normSub(a.subject)+'" is not allowed for VI-VIII. Use HINDI_2L, HINDI_3L, BENGALI_2L, or BENGALI_3L instead.');
+    if(n>=9&&n<=10 && BANNED_LANG_6TO8.indexOf(sl)>=0)
+      badSubs.push('Class '+a.classNum+a.section+': "'+normSub(a.subject)+'" is not allowed for IX-X. Use HINDI_2L or BENGALI_2L instead (2nd language, 2 sessions).');
   });
   if(badSubs.length){
     alert('\u{1F6AB} Banned subject name(s):\n\n'+badSubs.join('\n\n')+'\n\nPlease correct before saving.');
@@ -514,8 +517,8 @@ function resetQueueOrder() {
 // ── Algorithm constants ───────────────────────────────────
 // BANNED_SUBS_7TO10: "Social Science" and "Science" are not allowed for classes VII–X.
 var BANNED_SUBS_7TO10 = ['social science','science'];
-// Plain Hindi/Bengali banned for VI-VIII (must use Hindi_2L / Hindi_3L / Bengali_2L / Bengali_3L)
-var BANNED_LANG_6TO8 = ['hindi','bengali'];
+// Plain Hindi/Bengali banned for VI-X (must use Hindi_2L / Bengali_2L; VI-VIII also support _3L)
+var BANNED_LANG_6TO8 = ['hindi','bengali']; // reused for VI-X now
 
 // One-per-week subjects for VII–VIII
 var ONCE_PER_WEEK_7_8 = ['civics','geography','history','biology','physics','chemistry'];
@@ -559,12 +562,16 @@ function reqSess(cls,sub){
   var n=parseInt(cls), s=normSub(sub), sl=s.toLowerCase();
   // Block plain "Social Science" and "Science" for classes VII–X
   if(n>=7&&n<=10 && BANNED_SUBS_7TO10.indexOf(sl)>=0) return -1;
-  // Block plain Hindi/Bengali for VI–VIII (must use _2L / _3L variants)
-  if(n>=6&&n<=8 && BANNED_LANG_6TO8.indexOf(sl)>=0) return -1;
+  // Block plain Hindi/Bengali for ALL of VI–X (must use _2L / _3L variants)
+  if(n>=6&&n<=10 && BANNED_LANG_6TO8.indexOf(sl)>=0) return -1;
   // Classes VI–VIII language variants
   if(n>=6&&n<=8){
     if(sl==='hindi_2l'||sl==='bengali_2l') return 2;  // 2nd language: 2 sessions
     if(sl==='hindi_3l'||sl==='bengali_3l') return 1;  // 3rd language: 1 session
+  }
+  // Classes IX–X language variants (only _2L, 2 sessions each)
+  if(n>=9&&n<=10){
+    if(sl==='hindi_2l'||sl==='bengali_2l') return 2;  // 2nd language: 2 sessions
   }
   // Rule 2: Classes VII–VIII — once-per-week subjects capped at 1
   if(n>=7&&n<=8){
@@ -573,13 +580,13 @@ function reqSess(cls,sub){
   }
   // Class VI fixed subjects
   if(n===6){
-    if(ONCE_PER_WEEK_7_8.indexOf(sl)>=0) return 1; // reuse same list for VI if needed
+    if(ONCE_PER_WEEK_7_8.indexOf(sl)>=0) return 1;
     var m3={'English':3,'Maths':3,'Science':3,'Social Science':3,'Computer':1}; return m3[s]!=null?m3[s]:null;
   }
   // Rule 3: Classes IX–X — once-per-week subjects capped at 1
   if(n>=9&&n<=10){
     if(ONCE_PER_WEEK_9_10.indexOf(sl)>=0) return 1;
-    var m2={'English':3,'Maths':3,'Hindi':3,'Bengali':3,'AI':1}; return m2[s]!=null?m2[s]:null;
+    var m2={'English':3,'Maths':3,'AI':1}; return m2[s]!=null?m2[s]:null;
   }
   return null;
 }
@@ -609,6 +616,8 @@ function runSched() {
         var sl=sub.toLowerCase(), n=parseInt(a.classNum);
         var hint=(n>=6&&n<=8&&['hindi','bengali'].indexOf(sl)>=0)
           ? ' Use HINDI_2L / HINDI_3L / BENGALI_2L / BENGALI_3L instead.'
+          : (n>=9&&n<=10&&['hindi','bengali'].indexOf(sl)>=0)
+          ? ' Use HINDI_2L / BENGALI_2L instead (IX-X: 2nd language only, 2 sessions).'
           : (n>=7&&n<=10?' Use specific subjects (Civics, Geography, History, Biology, Physics, Chemistry'+(n>=9?' or Economics':'')+') instead.':'');
         bannedEntries.push({tn:t.name,cls:a.classNum,sub:sub,cs:a.classNum+'-'+a.section,hint:hint});
         return;
@@ -709,19 +718,38 @@ function runSched() {
             return true;
           });
 
-          // For each section that has BOTH a Hindi and Bengali task ready, place them
-          // Collect unique Hindi teachers and Bengali teachers (they may serve multiple sections)
-          var hTeachers=[], bTeachers=[];
+          // For each section that has BOTH a Hindi and Bengali task ready, pair them up.
+          // Rule: same teacher can take UP TO 2 sections of the same grade simultaneously.
+          // Build candidate list first, then group by teacher, capping at 2 sections per teacher.
           var sectionsToPlace=[];
+          var hTeachers=[], bTeachers=[];
 
+          // Candidate pairs: sections where both Hindi and Bengali (if any) are ready
+          var candidates=[];
           hReady.forEach(function(ht){
-            // Check if this section also has Bengali ready
             var bt=bReady.find(function(b){ return b.cs===ht.cs; });
-            if(!bt && grpB.length>0) return; // section must have Bengali partner if any Bengali exists for this grade/lvl
-            // Check teacher availability (teacher only needs to be free once across multi-section)
-            if(hTeachers.indexOf(ht.tn)<0 && tBusy[d][s][ht.tn]) return; // this teacher busy and not already counted
-            if(bt && bTeachers.indexOf(bt.tn)<0 && tBusy[d][s][bt.tn]) return;
-            sectionsToPlace.push({ht:ht,bt:bt});
+            if(!bt && grpB.length>0) return; // must have Bengali partner when Bengali exists for this grade/lvl
+            candidates.push({ht:ht,bt:bt});
+          });
+
+          // Group candidates by Hindi teacher, then by Bengali teacher.
+          // Each teacher can cover at most 2 sections in this slot.
+          // We process teachers in order; a teacher already saturated (2 sections) is skipped.
+          var hSections={}; // hTeacher -> count of sections assigned this slot
+          var bSections={}; // bTeacher -> count of sections assigned this slot
+
+          candidates.forEach(function(cand){
+            var ht=cand.ht, bt=cand.bt;
+            var hCount=hSections[ht.tn]||0;
+            var bCount=bt?(bSections[bt.tn]||0):0;
+            // Check teacher is free OR already committed this slot (same teacher, another section)
+            var hFree= !tBusy[d][s][ht.tn] || hCount>0; // free or already teaching this slot
+            var bFree= !bt || (!tBusy[d][s][bt.tn] || bCount>0);
+            if(!hFree || !bFree) return;  // teacher genuinely busy elsewhere
+            if(hCount>=2 || (bt&&bCount>=2)) return; // already teaching 2 sections this slot
+            sectionsToPlace.push(cand);
+            hSections[ht.tn]=(hSections[ht.tn]||0)+1;
+            if(bt) bSections[bt.tn]=(bSections[bt.tn]||0)+1;
             if(hTeachers.indexOf(ht.tn)<0) hTeachers.push(ht.tn);
             if(bt && bTeachers.indexOf(bt.tn)<0) bTeachers.push(bt.tn);
           });
